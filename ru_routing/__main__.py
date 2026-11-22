@@ -85,8 +85,10 @@ def build(args):
 
 def fetch(args):
     cache = open_sources(args)
-    asns = {r.value for c in load_local(args.data).values() for r, _ in c.rules if r.kind == "asn"}
-    cache.fetch_all(sorted(asns))
+    local = [r for c in load_local(args.data).values() for r, _ in c.rules]
+    cache.fetch_all(sorted({r.value for r in local if r.kind == "asn"}))
+    for host in sorted({r.value for r in local if r.kind == "resolve"}):
+        cache.addresses(host)
     report(cache)
 
 
@@ -153,6 +155,20 @@ def run_verdicts(args):
               f"scan {out / 'recheck.txt'} abroad and pass it as one more abroad file")
 
 
+def readme(args):
+    """Rewrite the category table in README.md from the descriptions in data/."""
+    rows = []
+    for name, category in load_local(args.data).items():
+        first = category.description.split(". ")[0].rstrip(".")
+        rows.append(f"| `{name}` | {first} |")
+    table = "| Category | Contents |\n|---|---|\n" + "\n".join(rows) + "\n"
+    path = Path("README.md")
+    text = path.read_text(encoding="utf-8")
+    start, end = "<!-- categories -->\n", "<!-- /categories -->"
+    head, rest = text.split(start, 1)
+    path.write_text(head + start + table + end + rest.split(end, 1)[1], encoding="utf-8")
+
+
 def main():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--data", default="data")
@@ -174,6 +190,9 @@ def main():
     p = sub.add_parser("why", parents=[common], help="show which categories match a domain or an IP")
     p.add_argument("target")
     p.set_defaults(func=why)
+
+    p = sub.add_parser("readme", parents=[common], help="update the category table in README.md")
+    p.set_defaults(func=readme)
 
     p = sub.add_parser("check", help="run checks.txt against every built variant")
     p.add_argument("--checks", default="checks.txt")

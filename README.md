@@ -11,20 +11,36 @@ and example configs come next.
 
 ## Categories
 
+<!-- categories -->
 | Category | Contents |
 |---|---|
 | `ads` | Ads and trackers |
 | `ads-big` | Ads and trackers, the aggressive list |
 | `ai` | AI services: ChatGPT, Claude, Gemini, Copilot, Perplexity and others |
+| `cloudflare` | Networks of Cloudflare |
+| `cloudfront` | Networks of Amazon CloudFront, a CDN |
+| `discord` | Discord: apps, web, media and voice |
 | `geoblock-ru` | Services that refuse Russian users on their own |
+| `google` | Every Google service |
+| `hdrezka` | HDRezka and its mirrors |
+| `hetzner` | Networks of Hetzner, a German hosting provider |
+| `hypixel` | Hypixel, the Minecraft server |
 | `ip-check` | Services that show your IP address and where it is |
+| `meta` | Meta: Facebook, Instagram, WhatsApp, Threads |
+| `os-updates` | Updates and downloads of Windows, Android, Chrome and Apple systems |
+| `ovh` | Networks of OVH, a French hosting provider |
 | `push` | Push notifications from Apple and Google |
+| `roblox` | Roblox: site, launcher and game servers |
 | `ru` | Russian sites and networks |
 | `ru-blocked` | Blocked by Roskomnadzor |
-| `ru-unreachable` | Everything known not to open from Russia without a tunnel, minus IP checkers |
+| `ru-unreachable` | Everything known not to open from Russia without a tunnel: blocked, geoblocked or throttled |
+| `scaleway` | Networks of Scaleway, a French hosting provider |
 | `telegram` | Telegram: apps, web and the networks of its data centers |
+| `tiktok` | TikTok |
+| `twitter` | X, formerly Twitter |
 | `win-spy` | Windows telemetry |
 | `youtube` | YouTube: site, apps, player and video CDN |
+<!-- /categories -->
 
 ## Variants
 
