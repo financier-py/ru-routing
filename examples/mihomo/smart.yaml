@@ -1,0 +1,101 @@
+# Mihomo (Clash Meta, FlClash, Koala, RabbitHole) with ru-routing lists.
+# Smart: only what doesn't open from Russia goes through the tunnel.
+# On iOS swap /full/ for /lite/ or /standard/ in the URLs: VPN extensions there have 50 MB.
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: warning
+
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  fake-ip-filter:
+    - rule-set:ru
+    - rule-set:push
+  nameserver:
+    - https://1.1.1.1/dns-query
+  nameserver-policy:
+    rule-set:ru:
+      - 77.88.8.8
+
+proxies:
+  - name: server
+    type: vless
+    server: your.server.example
+    port: 443
+    uuid: 00000000-0000-0000-0000-000000000000
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies: [server, DIRECT]
+
+rule-providers:
+  ip-check:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geosite/ip-check.mrs
+    path: ./rules/geosite/ip-check.mrs
+    interval: 86400
+  push:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geosite/push.mrs
+    path: ./rules/geosite/push.mrs
+    interval: 86400
+  os-updates:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geosite/os-updates.mrs
+    path: ./rules/geosite/os-updates.mrs
+    interval: 86400
+  ads:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geosite/ads.mrs
+    path: ./rules/geosite/ads.mrs
+    interval: 86400
+  ru:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geosite/ru.mrs
+    path: ./rules/geosite/ru.mrs
+    interval: 86400
+  ru-ip:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geoip/ru.mrs
+    path: ./rules/geoip/ru.mrs
+    interval: 86400
+  ru-unreachable:
+    type: http
+    behavior: domain
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geosite/ru-unreachable.mrs
+    path: ./rules/geosite/ru-unreachable.mrs
+    interval: 86400
+  ru-unreachable-ip:
+    type: http
+    behavior: ipcidr
+    format: mrs
+    url: https://raw.githubusercontent.com/financier-py/ru-routing/release/full/mihomo/geoip/ru-unreachable.mrs
+    path: ./rules/geoip/ru-unreachable.mrs
+    interval: 86400
+
+rules:
+  - GEOIP,lan,DIRECT,no-resolve
+  - RULE-SET,ip-check,DIRECT
+  - RULE-SET,push,DIRECT
+  - RULE-SET,os-updates,DIRECT
+  - RULE-SET,ads,REJECT
+  - AND,((NETWORK,UDP),(DST-PORT,443),(RULE-SET,ru-unreachable)),REJECT
+  - RULE-SET,ru-unreachable,PROXY
+  - RULE-SET,ru-unreachable-ip,PROXY
+  - MATCH,DIRECT
