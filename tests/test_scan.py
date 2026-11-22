@@ -31,6 +31,7 @@ class VerdictTest(unittest.TestCase):
 
     def test_no_answer_proves_nothing(self):
         self.assertEqual(verdict(home(status=None, stage="dns", bytes=0), OK), "unknown")
+        self.assertEqual(verdict(home(status=None, stage="dns", error="gaierror: no A record for hp.com"), OK), "blocked")
         self.assertEqual(verdict(home(status=None, stage="connect", error="OSError: [Errno 19] No such device"), OK), "unknown")
         self.assertEqual(verdict(home(status=403), {**OK, "status": 404}), "unknown")
         self.assertEqual(verdict(home(status=404), {**OK, "status": 404}), "works")

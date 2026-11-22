@@ -145,7 +145,7 @@ def verdict(home, abroad):
     if not abroad or abroad["status"] is None or abroad["status"] >= 500 or "challenge" in abroad.get("marks", []):
         return "unknown"  # no good page abroad either: dead, broken or behind a bot check
     if home["status"] is None:
-        if home["stage"] == "dns" or _local_error(home.get("error")):
+        if _no_answer(home) or _local_error(home.get("error")):
             # under load the resolver times out too; half of such hosts open on a calm rerun
             return "unknown"
         if home["stage"] == "body" and 0 < home["bytes"] < abroad["bytes"]:
@@ -164,6 +164,12 @@ def verdict(home, abroad):
     if home["status"] >= 400 and home["status"] != abroad["status"]:
         return "unknown"  # an error at home that abroad didn't get proves nothing either way
     return "works"
+
+
+def _no_answer(record):
+    """DNS gave no answer at all. An answer without an address is different: some
+    services hand Russian resolvers an empty reply, and that is a refusal."""
+    return record["stage"] == "dns" and "no A record" not in (record.get("error") or "")
 
 
 def _local_error(error):
