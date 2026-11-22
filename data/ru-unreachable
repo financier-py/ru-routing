@@ -6,6 +6,8 @@ include:geoblock-ru
 include:itdog/inside
 include:antifilter/community
 include:refilter/community
+include:scan-broken
+include:hand-checked
 
 include:ai
 include:discord

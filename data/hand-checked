@@ -1,0 +1,6 @@
+# Hosts checked by hand from a Russian home connection: broken at home, fine
+# abroad. The scanner can't find these on its own: they serve a site's files,
+# they aren't sites.
+
+full:d1dlmcr85iqnpo.cloudfront.net   # discuss.ai.google.dev scripts, freeze at 16 KB
+full:d3qe71uytubmmx.cloudfront.net   # images of the same forum
