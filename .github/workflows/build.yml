@@ -1,0 +1,69 @@
+name: build
+
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [data/**, sources.toml, variants.toml, checks.txt, ru_routing/**]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build
+
+env:
+  XRAY: v26.10.31
+  MIHOMO: v1.19.34
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+
+      - name: Cores
+        run: |
+          mkdir -p bin
+          curl -fsSL "https://github.com/MetaCubeX/mihomo/releases/download/$MIHOMO/mihomo-linux-amd64-$MIHOMO.gz" | gunzip > bin/mihomo
+          curl -fsSL -o xray.zip "https://github.com/XTLS/Xray-core/releases/download/$XRAY/Xray-linux-64.zip"
+          unzip -q xray.zip xray -d bin && rm xray.zip
+          chmod +x bin/mihomo bin/xray
+          (cd bin && ../tools/build-xray.sh "$XRAY")
+          echo "$PWD/bin" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: python -m ru_routing build | tee counts.txt
+
+      - name: Check
+        run: |
+          python -m ru_routing check
+          tools/check-examples.sh dist/full bin/xray bin/mihomo
+
+      - name: Memory
+        run: python tools/memory.py --xray bin/xray-mobile --mihomo bin/mihomo --max-peak 25 dist/lite dist/standard | tee memory.txt
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tools/package.sh dist out
+          if gh release download --pattern SHA256SUMS --output previous.sums 2>/dev/null && cmp -s previous.sums out/SHA256SUMS; then
+            echo "Nothing changed since the last release."
+            exit 0
+          fi
+          tag=$(date -u +%Y%m%d)
+          gh release view "$tag" >/dev/null 2>&1 && tag="$tag.$(date -u +%H%M)"
+          { echo '```'; cat counts.txt; echo; cat memory.txt; echo '```'; } > notes.md
+          gh release create "$tag" out/* --title "$tag" --notes-file notes.md --latest
+          tools/publish-branch.sh dist release
+          gh release list --limit 1000 --json tagName --jq '.[30:][].tagName' | xargs -r -n1 gh release delete --cleanup-tag --yes
