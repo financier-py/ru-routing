@@ -1,0 +1,22 @@
+# Every variant has the same categories. They differ only in how much of the
+# bulk lists they keep, most visited from Russia first.
+#
+# bulk: a number of domains, "popular" (anything in the CrUX top million) or "all"
+# skip: categories left out of the variant
+
+[lite]
+description = "Fits the memory of VPN extensions on iOS"
+bulk = 50000
+skip = ["ads-big"]
+
+[standard]
+description = "A good default for phones and routers"
+bulk = 200000
+
+[full]
+description = "Every bulk domain that people in Russia actually visit"
+bulk = "popular"
+
+[max]
+description = "Everything"
+bulk = "all"
