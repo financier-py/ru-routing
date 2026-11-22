@@ -12,6 +12,7 @@ skip = ["ads-big"]
 [standard]
 description = "A good default for phones and routers"
 bulk = 200000
+skip = ["ads-big"]
 
 [full]
 description = "Every bulk domain that people in Russia actually visit"

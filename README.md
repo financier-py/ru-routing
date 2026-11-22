@@ -88,8 +88,8 @@ Some services refuse Russia only in part, so `ru-unreachable` holds all of
 ## Variants
 
 The registry of blocked sites holds over 1.6 million domains, and almost none of
-them are ever opened: our sample of the rest showed two thirds dead, and most of
-the living ones are casino and pirate-cinema clones. Big lists cost memory, and
+them are ever opened. We checked a sample of the ones nobody visits: two thirds
+no longer exist, and most of the rest are casino and pirate-cinema clones. Big lists cost memory, and
 VPN extensions on iOS have only 50 MB.
 
 So every category comes in four sizes. They share the same names and differ only
@@ -105,8 +105,10 @@ Russia only over a VPN is counted where the VPN is.
 | `full` | Android, computers, routers | about 17 MiB |
 | `max` | everything, routers with memory to spare | over 150 MiB |
 
-`standard` and `full` differ only in ads: `full` has the big ad list. Limits
-live in [`variants.toml`](variants.toml).
+`lite` and `standard` leave out the big ad list. The popular part of the
+registry is small enough today that all three keep the same `ru-unreachable`;
+the limits only start to bite as it grows. They live in
+[`variants.toml`](variants.toml).
 
 ## How the lists are made
 
