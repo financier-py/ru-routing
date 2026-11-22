@@ -1,0 +1,10 @@
+# Telegram: apps, web and the networks of its data centers.
+
+include:v2fly/telegram
+include:telegram/cidr
+
+asn:62041
+asn:59930
+asn:62014
+asn:211157
+asn:44907   # CDN

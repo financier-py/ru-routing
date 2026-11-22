@@ -1,0 +1,27 @@
+# Upstream lists. A category refers to them as `include:<source>/<list>`.
+#
+# format:
+#   v2fly   archive of v2fly/domain-list-community, lists are files in data/
+#   rules   one rule per line: domain:, full:, keyword:, regexp: or a bare domain
+#   cidr    one network per line
+#
+# min: refuse a download with fewer entries and keep the previous copy.
+
+[v2fly]
+homepage = "https://github.com/v2fly/domain-list-community"
+license = "MIT"
+format = "v2fly"
+url = "https://github.com/v2fly/domain-list-community/archive/refs/heads/master.tar.gz"
+
+[runetfreedom]
+homepage = "https://github.com/runetfreedom/russia-blocked-geosite"
+license = "GPL-3.0"
+format = "rules"
+lists.ru-blocked = { url = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/ru-blocked.txt", min = 20000 }
+lists.ru-blocked-all = { url = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/ru-blocked-all.txt", min = 500000 }
+
+[telegram]
+homepage = "https://core.telegram.org/resources/cidr.txt"
+license = "public"
+format = "cidr"
+lists.cidr = { url = "https://core.telegram.org/resources/cidr.txt", min = 5 }

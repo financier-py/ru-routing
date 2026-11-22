@@ -1,0 +1,16 @@
+# Push notifications from Apple and Google.
+
+push.apple.com
+push-apple.com.akadns.net
+
+mtalk.google.com
+full:alt1-mtalk.google.com
+full:alt2-mtalk.google.com
+full:alt3-mtalk.google.com
+full:alt4-mtalk.google.com
+full:alt5-mtalk.google.com
+full:alt6-mtalk.google.com
+full:alt7-mtalk.google.com
+full:alt8-mtalk.google.com
+full:fcm.googleapis.com
+full:fcm-xmpp.googleapis.com

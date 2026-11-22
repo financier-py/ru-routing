@@ -1,0 +1,4 @@
+# AI services: ChatGPT, Claude, Gemini, Copilot, Perplexity and others.
+# Most of them refuse Russian addresses.
+
+include:v2fly/category-ai-!cn
