@@ -8,7 +8,7 @@ fails at home but loads abroad is blocked, throttled or geoblocked.
 import json
 import ssl
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
 from . import direct, probe
@@ -89,13 +89,25 @@ def run(targets, out, jobs=64, route=None, resolver=None):
         done = {json.loads(line)["host"] for line in out.read_text(encoding="utf-8").splitlines() if line.strip()}
     todo = [t for t in targets if t not in done]
     print(f"{len(todo)} to check, {len(done)} already done", file=sys.stderr)
+    # Submit as slots free up instead of all at once: with hundreds of thousands
+    # of targets, finished results would otherwise pile up in memory.
+    pending, queue, n = set(), iter(todo), 0
     with out.open("a", encoding="utf-8") as f, ThreadPoolExecutor(jobs) as pool:
-        futures = [pool.submit(probe.fetch, host, route, resolver) for host in todo]
-        for n, future in enumerate(as_completed(futures), 1):
-            f.write(json.dumps(future.result(), ensure_ascii=False) + "\n")
-            if n % 500 == 0:
-                f.flush()
-                print(f"{n}/{len(todo)}", file=sys.stderr)
+        while True:
+            for host in queue:
+                pending.add(pool.submit(probe.fetch, host, route, resolver))
+                if len(pending) >= jobs * 2:
+                    break
+            if not pending:
+                break
+            done_now, pending = wait(pending, return_when=FIRST_COMPLETED)
+            for future in done_now:
+                f.write(json.dumps(future.result(), ensure_ascii=False) + "\n")
+                n += 1
+                if n % 100 == 0:
+                    f.flush()
+                if n % 1000 == 0:
+                    print(f"{n}/{len(todo)}", file=sys.stderr)
 
 
 def load(*paths):

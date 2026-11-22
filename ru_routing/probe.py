@@ -15,7 +15,8 @@ import urllib.parse
 
 USER_AGENT = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
-LIMIT = 256 * 1024   # bytes of a page worth reading
+LIMIT = 128 * 1024          # bytes of a page worth reading
+RESOURCE_LIMIT = 64 * 1024  # enough to tell a 16 KB stall from a full file
 CONNECT_TIMEOUT = 8
 READ_TIMEOUT = 10    # silence this long in the middle of a page is a stall
 MAX_REDIRECTS = 5
@@ -148,8 +149,8 @@ def connect(host, port, route=None, resolver=None):
     return sock, address
 
 
-def _get(host, path, route, resolver, result):
-    stage, body = "dns", b""
+def _get(host, path, route, resolver, result, limit=LIMIT):
+    stage, body = "dns", bytearray()
     try:
         sock, result["ip"] = connect(host, 443, route, resolver)
         stage = "tls"
@@ -162,13 +163,13 @@ def _get(host, path, route, resolver, result):
                                            "Accept-Language": "ru,en;q=0.8", "Accept-Encoding": "identity"})
         response = conn.getresponse()
         stage = "body"
-        while len(body) < LIMIT:
+        while len(body) < limit:
             chunk = response.read1(65536)
             if not chunk:
                 break
             body += chunk
         conn.close()
-        return response.status, response.getheader("Location"), body
+        return response.status, response.getheader("Location"), bytes(body)
     except (OSError, http.client.HTTPException) as e:
         result["stage"] = stage
         result["error"] = type(e).__name__ if str(e) == "" else f"{type(e).__name__}: {e}"[:120]
@@ -204,7 +205,7 @@ def fetch(target, route=None, resolver=None, deep=True):
     start = time.monotonic()
     url_host, path = split_target(target)
     for _ in range(MAX_REDIRECTS + 1):
-        status, location, body = _get(url_host, path, route, resolver, result)
+        status, location, body = _get(url_host, path, route, resolver, result, LIMIT if deep else RESOURCE_LIMIT)
         if status is None:
             break
         result.update(status=status, bytes=len(body), final=f"{url_host}{path}")
