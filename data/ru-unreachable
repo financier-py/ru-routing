@@ -7,4 +7,15 @@ include:itdog/inside
 include:antifilter/community
 include:refilter/community
 
+include:ai
+include:discord
+include:hdrezka
+include:hypixel
+include:meta
+include:roblox
+include:telegram
+include:tiktok
+include:twitter
+include:youtube
+
 exclude:ip-check

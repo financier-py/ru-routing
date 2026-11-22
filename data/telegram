@@ -1,6 +1,7 @@
 # Telegram: apps, web and the networks of its data centers.
 
 include:v2fly/telegram
+include:itdog/telegram
 include:telegram/cidr
 
 asn:62041

@@ -37,3 +37,15 @@ vk.com                  ru !ru-unreachable
 
 doubleclick.net         ads
 example.com             !ru-unreachable !ads !ru
+
+discord.com             discord ru-unreachable
+66.22.200.10            discord ru-unreachable
+instagram.com           meta
+web.whatsapp.com        meta
+157.240.1.35            meta
+x.com                   twitter
+tiktok.com              tiktok
+roblox.com              roblox
+hypixel.net             hypixel
+dl.google.com           os-updates
+update.microsoft.com    os-updates

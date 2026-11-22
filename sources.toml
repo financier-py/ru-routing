@@ -49,6 +49,20 @@ homepage = "https://github.com/itdoginfo/allow-domains"
 format = "domains"
 lists.inside = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-raw.lst", min = 500 }
 lists.geoblock = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Categories/geoblock.lst", min = 100 }
+lists.discord = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/discord.lst", min = 5 }
+lists.google_ai = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/google_ai.lst", min = 5 }
+lists.hdrezka = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/hdrezka.lst", min = 5 }
+lists.meta = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/meta.lst", min = 5 }
+lists.roblox = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/roblox.lst", min = 2 }
+lists.telegram = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/telegram.lst", min = 5 }
+lists.tiktok = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/tiktok.lst", min = 5 }
+lists.twitter = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/twitter.lst", min = 5 }
+lists.youtube = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Services/youtube.lst", min = 5 }
+
+[itdog-subnets]
+homepage = "https://github.com/itdoginfo/allow-domains"
+format = "cidr"
+lists.cloudfront = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Subnets/IPv4/cloudfront.lst", min = 50 }
 
 [oisd]
 homepage = "https://oisd.nl"
@@ -56,6 +70,12 @@ license = "GPL-3.0"
 format = "domains"
 lists.small = { url = "https://small.oisd.nl/domainswild2", min = 30000 }
 lists.big = { url = "https://big.oisd.nl/domainswild2", min = 150000 }
+
+[cloudflare]
+homepage = "https://www.cloudflare.com/ips/"
+format = "cidr"
+lists.v4 = { url = "https://www.cloudflare.com/ips-v4", min = 10 }
+lists.v6 = { url = "https://www.cloudflare.com/ips-v6", min = 5 }
 
 [telegram]
 homepage = "https://core.telegram.org/resources/cidr.txt"

@@ -1,0 +1,9 @@
+# Discord: apps, web, media and voice.
+
+include:v2fly/discord
+include:itdog/discord
+
+# Voice goes over UDP straight to these networks, with no domain to match.
+ip:66.22.192.0/18
+ip:138.128.136.0/21
+ip:5.200.14.128/25

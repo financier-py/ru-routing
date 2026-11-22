@@ -2,3 +2,4 @@
 # Most of them refuse Russian addresses.
 
 include:v2fly/category-ai-!cn
+include:itdog/google_ai

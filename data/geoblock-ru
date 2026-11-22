@@ -2,3 +2,8 @@
 
 include:no-russia-hosts/hosts
 include:itdog/geoblock
+
+# Failed from Russian data centers in our own checks
+office.com
+microsoft365.com
+cloud.microsoft
