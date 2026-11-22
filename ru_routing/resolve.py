@@ -59,25 +59,29 @@ def matches(rule, target):
 
 def minimize(entries):
     """Drop duplicates and rules already matched by a broader domain or network."""
-    unique = {}
+    out = {}
     for rule, origin in entries.items():
-        merge(unique, Rule(rule.kind, rule.value), origin)
-    entries = unique
-    domains = {r.value for r in entries if r.kind == "domain"}
+        merge(out, rule if not rule.attrs else Rule(rule.kind, rule.value), origin)
 
-    def redundant(rule):
+    domains = {r.value for r in out if r.kind == "domain"}
+    redundant = []
+    for rule in out:
         if rule.kind not in ("domain", "full"):
-            return False
+            continue
         parts = rule.value.split(".")
-        parents = {".".join(parts[i:]) for i in range(1, len(parts))}
-        return bool(parents & domains) or (rule.kind == "full" and rule.value in domains)
+        if any(".".join(parts[i:]) in domains for i in range(1, len(parts))) or (
+                rule.kind == "full" and rule.value in domains):
+            redundant.append(rule)
+    for rule in redundant:
+        del out[rule]
 
-    kept = {r: w for r, w in entries.items() if not redundant(r)}
-    nets = [ipaddress.ip_network(r.value) for r in kept if r.kind == "ip"]
-    collapsed = {str(n) for v in (4, 6) for n in ipaddress.collapse_addresses(x for x in nets if x.version == v)}
-    out = {r: w for r, w in kept.items() if r.kind != "ip" or r.value in collapsed}
-    for value in collapsed - {r.value for r in out if r.kind == "ip"}:
-        out[Rule("ip", value)] = Origin("merged", False)
+    nets = [ipaddress.ip_network(r.value) for r in out if r.kind == "ip"]
+    if nets:
+        collapsed = {str(n) for v in (4, 6) for n in ipaddress.collapse_addresses(x for x in nets if x.version == v)}
+        for rule in [r for r in out if r.kind == "ip" and r.value not in collapsed]:
+            del out[rule]
+        for value in collapsed - {r.value for r in out if r.kind == "ip"}:
+            out[Rule("ip", value)] = Origin("merged", False)
     return out
 
 
@@ -95,6 +99,29 @@ class Resolver:
             return self.local[name]
         return self.upstream.category(namespace, name)
 
+    def _rules(self, ref, category):
+        """Rules of one category with their origins; ASNs and names become networks."""
+        namespace, _, name = ref.rpartition("/")
+        bulk = bool(namespace) and self.upstream.source(namespace).is_bulk(name)
+        origins = {}  # one Origin per place, not per rule: lists can have millions of rules
+        for rule, where in category.rules:
+            if rule.kind == "asn":
+                for prefix in self.upstream.asn(rule.value):
+                    yield Rule("ip", prefix, rule.attrs), Origin(f"{where} AS{rule.value}", bulk)
+            elif rule.kind == "resolve":
+                for address in self.upstream.addresses(rule.value):
+                    yield Rule("ip", address, rule.attrs), Origin(f"{where} {rule.value}", bulk)
+            else:
+                yield rule, origins.get(where) or origins.setdefault(where, Origin(where, bulk))
+
+    def _items(self, ref, stack):
+        """(rule, origin) pairs of an included category. Plain upstream lists have no
+        includes of their own, so they flow straight in without being kept anywhere."""
+        namespace = ref.rpartition("/")[0]
+        if namespace and self.upstream.source(namespace).format != "v2fly":
+            return self._rules(ref, self._category(ref))
+        return self.resolve(ref, stack).items()
+
     def resolve(self, ref, _stack=()):
         """Map every rule of a category to the place it came from."""
         if ref in self._done:
@@ -102,36 +129,26 @@ class Resolver:
         if ref in _stack:
             raise FormatError("include cycle: " + " -> ".join(_stack + (ref,)))
         category = self._category(ref)
-        namespace, _, name = ref.rpartition("/")
-        bulk = bool(namespace) and self.upstream.source(namespace).is_bulk(name)
+        namespace = ref.rpartition("/")[0]
 
         out = {}
-        origins = {}  # one Origin per place, not per rule: lists can have millions of rules
-        for rule, where in category.rules:
-            if rule.kind == "asn":
-                for prefix in self.upstream.asn(rule.value):
-                    merge(out, Rule("ip", prefix, rule.attrs), Origin(f"{where} AS{rule.value}", bulk))
-            elif rule.kind == "resolve":
-                for address in self.upstream.addresses(rule.value):
-                    merge(out, Rule("ip", address, rule.attrs), Origin(f"{where} {rule.value}", bulk))
-            else:
-                origin = origins.get(where) or origins.setdefault(where, Origin(where, bulk))
-                merge(out, rule, origin)
+        for rule, origin in self._rules(ref, category):
+            merge(out, rule, origin)
 
         excluded = []
-        for link, where in category.links:
+        for link, _ in category.links:
             # inside a v2fly list, `include:google` means v2fly/google
             target = link.target if "/" in link.target or not namespace else f"{namespace}/{link.target}"
-            picked = {r: w for r, w in self.resolve(target, _stack + (ref,)).items() if link.accepts(r)}
+            picked = ((r, o) for r, o in self._items(target, _stack + (ref,)) if link.accepts(r))
             if link.op == "include":
-                for rule, origin in picked.items():
+                for rule, origin in picked:
                     merge(out, rule, origin)
             else:
-                excluded.extend(picked)
+                excluded.extend(r for r, _ in picked)
 
         if excluded:
             hit = excluder(excluded)
-            out = {r: w for r, w in out.items() if not hit(r)}
+            out = {r: o for r, o in out.items() if not hit(r)}
         if not namespace:  # upstream lists are included once, keeping them would only cost memory
             self._done[ref] = out
         return out

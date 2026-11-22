@@ -25,28 +25,33 @@ def write(path, data):
 
 
 def write_variant(out, chosen, mihomo):
-    domains, networks = {}, {}
-    for name, entries in chosen.items():
-        domains[name], networks[name] = split(minimize(entries))
+    """Write one variant, a category at a time: .dat files are just entries one
+    after another, so nothing has to hold every category at once."""
+    out.mkdir(parents=True, exist_ok=True)
+    counts = {}
+    with open(out / "geosite.dat", "wb") as geosite, open(out / "geoip.dat", "wb") as geoip:
+        for name in sorted(chosen):
+            domains, networks = split(minimize(chosen[name]))
+            counts[name] = (len(domains), len(networks))
+            geosite.write(formats.geosite({name: domains}))
+            write(out / "text" / "geosite" / f"{name}.txt", formats.text(domains))
+            if networks:
+                geoip.write(formats.geoip({name: networks}))
+                write(out / "text" / "geoip" / f"{name}.txt", "".join(f"{r.value}\n" for r in networks))
+            if mihomo:
+                write_mihomo(out / "mihomo", name, domains, networks, mihomo)
+    return counts
 
-    write(out / "geosite.dat", formats.geosite(domains))
-    write(out / "geoip.dat", formats.geoip({n: r for n, r in networks.items() if r}))
-    for name in chosen:
-        write(out / "text" / "geosite" / f"{name}.txt", formats.text(domains[name]))
-        if networks[name]:
-            write(out / "text" / "geoip" / f"{name}.txt", "".join(f"{r.value}\n" for r in networks[name]))
-        if not mihomo:
-            continue
-        (out / "mihomo" / "geosite").mkdir(parents=True, exist_ok=True)
-        (out / "mihomo" / "geoip").mkdir(parents=True, exist_ok=True)
-        if domains[name]:
-            formats.mrs(mihomo, "domain", formats.mihomo_domains(domains[name]), out / "mihomo" / "geosite" / f"{name}.mrs")
-            if any(r.kind in ("keyword", "regexp") for r in domains[name]):
-                write(out / "mihomo" / "geosite" / f"{name}.list", formats.mihomo_classical(domains[name]))
-        if networks[name]:
-            text = "".join(f"{r.value}\n" for r in networks[name])
-            formats.mrs(mihomo, "ipcidr", text, out / "mihomo" / "geoip" / f"{name}.mrs")
-    return {n: (len(domains[n]), len(networks[n])) for n in chosen}
+
+def write_mihomo(out, name, domains, networks, binary):
+    (out / "geosite").mkdir(parents=True, exist_ok=True)
+    (out / "geoip").mkdir(parents=True, exist_ok=True)
+    if domains:
+        formats.mrs(binary, "domain", formats.mihomo_domains(domains), out / "geosite" / f"{name}.mrs")
+        if any(r.kind in ("keyword", "regexp") for r in domains):
+            write(out / "geosite" / f"{name}.list", formats.mihomo_classical(domains))
+    if networks:
+        formats.mrs(binary, "ipcidr", "".join(f"{r.value}\n" for r in networks), out / "geoip" / f"{name}.mrs")
 
 
 def print_counts(names, plan, counts):

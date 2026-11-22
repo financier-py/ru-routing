@@ -25,6 +25,8 @@ from pathlib import Path
 DOMAIN_KINDS = ("domain", "full", "keyword", "regexp")
 KINDS = DOMAIN_KINDS + ("ip", "asn", "resolve")
 
+NO_ATTRS = frozenset()  # shared: millions of rules have no attributes, and an empty set costs 200 bytes
+
 _label = re.compile(r"^(?!-)[a-z0-9_-]{1,63}(?<!-)$")
 
 
@@ -36,7 +38,7 @@ class FormatError(ValueError):
 class Rule:
     kind: str
     value: str
-    attrs: frozenset[str] = frozenset()
+    attrs: frozenset[str] = NO_ATTRS
 
     def __str__(self):
         return f"{self.kind}:{self.value}"
@@ -46,8 +48,8 @@ class Rule:
 class Link:
     op: str  # include or exclude
     target: str
-    want: frozenset[str] = frozenset()
-    drop: frozenset[str] = frozenset()
+    want: frozenset[str] = NO_ATTRS
+    drop: frozenset[str] = NO_ATTRS
 
     def accepts(self, rule):
         return self.want <= rule.attrs and not self.drop & rule.attrs
@@ -74,7 +76,7 @@ def normalize_domain(value):
     return value
 
 
-def parse_rule(text, attrs=frozenset()):
+def parse_rule(text, attrs=NO_ATTRS):
     kind, sep, value = text.partition(":")
     if not sep or kind not in KINDS:
         kind, value = "domain", text
@@ -108,8 +110,8 @@ def parse_line(line):
     stray = [t for t in tail if not t.startswith(("@", "&"))]
     if stray:
         raise FormatError(f"unexpected {stray[0]!r}")
-    attrs = frozenset(t[1:] for t in tail if t.startswith("@") and not t.startswith("@-"))
-    drop = frozenset(t[2:] for t in tail if t.startswith("@-"))
+    attrs = frozenset(t[1:] for t in tail if t.startswith("@") and not t.startswith("@-")) or NO_ATTRS
+    drop = frozenset(t[2:] for t in tail if t.startswith("@-")) or NO_ATTRS
     # v2fly affiliations (&name) only matter for v2fly's own build
     if head.startswith(("include:", "exclude:")):
         op, target = head.split(":", 1)
@@ -119,12 +121,9 @@ def parse_line(line):
     return parse_rule(head, attrs)
 
 
-def parse(name, text, origin, strict=True, lines=True):
-    """Parse a category file.
-
-    strict=False counts and skips bad lines, which is what upstream lists need:
-    one typo there should not stop the build. lines=False records only the list
-    name as the origin, which saves a lot of memory on lists with millions of lines."""
+def parse(name, text, origin, strict=True):
+    """Parse a category file. strict=False counts and skips bad lines, which is
+    what upstream lists need: one typo there should not stop the build."""
     category = Category(name)
     description = []
     for n, line in enumerate(text.splitlines(), 1):
@@ -139,12 +138,33 @@ def parse(name, text, origin, strict=True, lines=True):
                 raise FormatError(f"{origin}:{n}: {e}") from None
             category.skipped += 1
             continue
-        where = f"{origin}:{n}" if lines else origin
+        where = f"{origin}:{n}"
         if isinstance(item, Rule):
             category.rules.append((item, where))
         elif isinstance(item, Link):
             category.links.append((item, where))
     category.description = " ".join(d for d in description if d)
+    return category
+
+
+def stream(name, lines, origin):
+    """A category read lazily from an upstream list with millions of lines.
+
+    Rules come out one at a time and bad lines are counted, not raised, so a
+    huge list never sits in memory twice. Upstream lists have no includes."""
+    category = Category(name, rules=None)
+
+    def read():
+        for line in lines:
+            try:
+                item = parse_line(line)
+            except FormatError:
+                category.skipped += 1
+                continue
+            if isinstance(item, Rule):
+                yield item, origin
+
+    category.rules = read()
     return category
 
 

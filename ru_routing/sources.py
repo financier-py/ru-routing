@@ -54,7 +54,7 @@ def count_lines(data):
 
 def plain_domains(text):
     """Lists of bare domains come with all sorts of noise: comments, quotes, wildcards."""
-    for line in text.splitlines():
+    for line in io.StringIO(text):
         line = line.split("#", 1)[0].strip().strip('"').removeprefix("*.").lstrip(".")
         if line:
             yield line
@@ -78,7 +78,8 @@ class Cache:
         self.sources = sources
         self.root = Path(root)
         self.offline = offline
-        self.warnings = []
+        self._warnings = []
+        self._streamed = []
         self._archives = {}
         self._fetched = set()
 
@@ -94,7 +95,7 @@ class Cache:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
             except (OSError, ValueError) as e:
-                self.warnings.append(f"{key}: {e}; using the cached copy")
+                self._warnings.append(f"{key}: {e}; using the cached copy")
         if not path.exists():
             raise FileNotFoundError(f"{key}: not downloaded and no cached copy")
         return path.read_bytes()
@@ -130,15 +131,21 @@ class Cache:
             raise KeyError(f"unknown list: {ref}")
         text = self._fetch(ref, spec["url"], spec.get("min", 1)).decode("utf-8", "replace")
         if source.format == "domains":
-            text = "\n".join(plain_domains(text))
+            lines = plain_domains(text)
         elif source.format == "cidr":
-            text = "\n".join(f"ip:{line.strip()}" for line in text.splitlines() if line.strip())
+            lines = (f"ip:{line.strip()}" for line in io.StringIO(text) if line.strip())
         elif source.format == "ripe":
-            text = "\n".join(f"ip:{net}" for net in ripe_delegated(text, spec["country"]))
-        category = rules.parse(list_name, text, ref, strict=False, lines=False)
-        if category.skipped:
-            self.warnings.append(f"{ref}: skipped {category.skipped} malformed lines")
+            lines = (f"ip:{net}" for net in ripe_delegated(text, spec["country"]))
+        else:
+            lines = io.StringIO(text)
+        category = rules.stream(list_name, lines, ref)
+        self._streamed.append((ref, category))
         return category
+
+    @property
+    def warnings(self):
+        skipped = [f"{ref}: skipped {c.skipped} malformed lines" for ref, c in self._streamed if c.skipped]
+        return self._warnings + skipped
 
     def _v2fly(self, source):
         if source.name not in self._archives:
@@ -169,7 +176,7 @@ class Cache:
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("".join(f"{a}\n" for a in found))
             except OSError as e:
-                self.warnings.append(f"resolve {host}: {e}; using the cached addresses")
+                self._warnings.append(f"resolve {host}: {e}; using the cached addresses")
         if not path.exists():
             raise FileNotFoundError(f"resolve {host}: no answer and no cached addresses")
         return [str(ipaddress.ip_network(a)) for a in path.read_text().split()]
@@ -182,10 +189,12 @@ class Cache:
         source = self.source(name)
         for country in countries or source.countries:
             path = "global" if country == "global" else f"country/{country}"
-            data = gzip.decompress(self._fetch(f"{name}/{country}.csv.gz", self._months(source.url, path)))
-            for line in data.decode().splitlines()[1:]:
-                origin, rank = line.rsplit(",", 1)
-                yield origin.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0], int(rank)
+            data = self._fetch(f"{name}/{country}.csv.gz", self._months(source.url, path))
+            with gzip.open(io.BytesIO(data), "rt", encoding="utf-8") as lines:
+                next(lines)  # header
+                for line in lines:
+                    origin, rank = line.rstrip().rsplit(",", 1)
+                    yield origin.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0], int(rank)
 
     @staticmethod
     def _months(template, path, back=4):
@@ -212,4 +221,4 @@ class Cache:
             try:
                 job()
             except FileNotFoundError as e:
-                self.warnings.append(str(e))
+                self._warnings.append(str(e))

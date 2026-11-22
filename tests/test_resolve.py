@@ -5,7 +5,8 @@ from ru_routing.rules import FormatError, Link, Rule, parse, parse_line
 
 
 class FakeSource:
-    def __init__(self, bulk):
+    def __init__(self, name, bulk):
+        self.format = "v2fly" if name == "v2fly" else "rules"
         self.bulk = bulk
 
     def is_bulk(self, name):
@@ -18,7 +19,7 @@ class FakeUpstream:
         self.bulk = bulk
 
     def source(self, name):
-        return FakeSource(self.bulk)
+        return FakeSource(name, self.bulk)
 
     def category(self, source, name):
         ref = f"{source}/{name}"
