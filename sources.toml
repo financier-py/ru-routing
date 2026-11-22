@@ -10,6 +10,7 @@
 #
 # min:  refuse a download with fewer entries and keep the previous copy
 # bulk: huge lists; variants keep only their most popular part
+# narrow: take the hosts a comment names above a domain instead of the whole domain
 
 [v2fly]
 homepage = "https://github.com/v2fly/domain-list-community"
@@ -42,7 +43,7 @@ lists.community = { url = "https://raw.githubusercontent.com/1andrevich/Re-filte
 [no-russia-hosts]
 homepage = "https://github.com/dartraiden/no-russia-hosts"
 format = "domains"
-lists.hosts = { url = "https://raw.githubusercontent.com/dartraiden/no-russia-hosts/master/hosts.txt", min = 300 }
+lists.hosts = { url = "https://raw.githubusercontent.com/dartraiden/no-russia-hosts/master/hosts.txt", min = 300, narrow = true }
 
 [itdog]
 homepage = "https://github.com/itdoginfo/allow-domains"

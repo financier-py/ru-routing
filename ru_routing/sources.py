@@ -6,6 +6,7 @@ keeps the previous copy, so one broken upstream never breaks the build.
 
 import datetime
 import gzip
+import http.client
 import io
 import ipaddress
 import json
@@ -42,8 +43,11 @@ def load_config(path):
 
 def download(url, timeout=300):
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read()
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.read()
+    except http.client.HTTPException as e:  # a connection cut mid-file is not an OSError
+        raise OSError(f"{type(e).__name__}: {e}") from e
 
 
 def count_lines(data):
@@ -58,6 +62,24 @@ def plain_domains(text):
         line = line.split("#", 1)[0].strip().strip('"').removeprefix("*.").lstrip(".")
         if line:
             yield line
+
+
+def named_hosts(text):
+    """no-russia-hosts lists a whole domain but names in a comment above it the
+    hosts that actually refuse Russia: copilot.microsoft.com for microsoft.com.
+    Where every comment line of a block is such a host, take those hosts."""
+    named = []
+    for line in io.StringIO(text):
+        line = line.strip()
+        if line.startswith("#"):
+            words = line.lstrip("#").split()
+            named.append(words[0].split("/")[0].lower() if words else "")
+            continue
+        domain = next(plain_domains(line), None)
+        if domain:
+            hosts = [h for h in named if h.endswith("." + domain) and h != "www." + domain]
+            yield from hosts if named and len(hosts) == len(named) else [domain]
+        named = []
 
 
 def ripe_delegated(text, country):
@@ -131,7 +153,7 @@ class Cache:
             raise KeyError(f"unknown list: {ref}")
         text = self._fetch(ref, spec["url"], spec.get("min", 1)).decode("utf-8", "replace")
         if source.format == "domains":
-            lines = plain_domains(text)
+            lines = named_hosts(text) if spec.get("narrow") else plain_domains(text)
         elif source.format == "cidr":
             lines = (f"ip:{line.strip()}" for line in io.StringIO(text) if line.strip())
         elif source.format == "ripe":
