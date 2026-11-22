@@ -27,7 +27,7 @@ class Source:
     homepage: str = ""
     license: str = ""
     url: str = ""
-    country: str = ""
+    countries: list[str] = field(default_factory=list)
     lists: dict[str, dict] = field(default_factory=dict)
 
     def is_bulk(self, list_name):
@@ -158,23 +158,26 @@ class Cache:
         return sorted(p["prefix"] for p in data["data"]["prefixes"])
 
     def ranks(self, name="crux"):
-        """Host name -> CrUX rank bucket (1000, 5000, ... 1000000) for one country.
+        """Yield (host, rank bucket) from the CrUX top lists of every configured country.
 
-        The monthly file appears a few weeks after the month ends, so try the last
-        few months, newest first."""
+        A host shows up once per list it is in; the caller keeps the best rank.
+        Monthly files appear a few weeks after the month ends, so try the last few."""
         source = self.source(name)
+        for country in source.countries:
+            path = "global" if country == "global" else f"country/{country}"
+            data = gzip.decompress(self._fetch(f"{name}/{country}.csv.gz", self._months(source.url, path)))
+            for line in data.decode().splitlines()[1:]:
+                origin, rank = line.rsplit(",", 1)
+                yield origin.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0], int(rank)
+
+    @staticmethod
+    def _months(template, path, back=4):
         month = datetime.date.today().replace(day=1)
         urls = []
-        for _ in range(4):
+        for _ in range(back):
             month = (month - datetime.timedelta(days=1)).replace(day=1)
-            urls.append(source.url.format(country=source.country, month=month.strftime("%Y%m")))
-        data = gzip.decompress(self._fetch(f"{name}/{source.country}.csv.gz", urls))
-        out = {}
-        for line in data.decode().splitlines()[1:]:
-            origin, rank = line.rsplit(",", 1)
-            host = origin.split("://", 1)[-1].split("/", 1)[0].split(":", 1)[0]
-            out[host] = min(out.get(host, 10**7), int(rank))
-        return out
+            urls.append(template.format(path=path, month=month.strftime("%Y%m")))
+        return urls
 
     def fetch_all(self, asns=()):
         """Download everything sources.toml mentions, for a later --offline build."""
@@ -183,7 +186,8 @@ class Cache:
                 if source.format == "v2fly":
                     self._v2fly(source)
                 elif source.format == "crux":
-                    self.ranks(source.name)
+                    for _ in self.ranks(source.name):
+                        pass
                 else:
                     for list_name, spec in source.lists.items():
                         self._fetch(f"{source.name}/{list_name}", spec["url"], spec.get("min", 1))

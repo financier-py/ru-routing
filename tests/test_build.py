@@ -48,7 +48,8 @@ RANKS = {"www.popular.com": 1000, "visited.com": 500000}
 
 class VariantTest(unittest.TestCase):
     def pick(self, **kw):
-        out = variants.apply(variants.Variant("v", **kw), CATEGORIES, RANKS)
+        rank = variants.popularity(variants.bulk_domains(CATEGORIES), RANKS.items())
+        out = variants.apply(variants.Variant("v", **kw), CATEGORIES, rank)
         return {n: sorted(r.value for r in e) for n, e in out.items()}
 
     def test_limit_takes_most_popular(self):

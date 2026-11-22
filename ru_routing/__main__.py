@@ -67,14 +67,16 @@ def build(args):
     resolver = Resolver(load_local(args.data), cache)
     resolved = {name: resolver.resolve(name) for name in resolver.local}
     plan = variants.load_config(args.variants)
-    ranks = cache.ranks() if any(v.bulk != "all" for v in plan) else {}
+    rank = {}
+    if any(v.bulk != "all" for v in plan):
+        rank = variants.popularity(variants.bulk_domains(resolved), cache.ranks())
     mihomo = formats.find_mihomo()
     if not mihomo:
         cache.warnings.append("mihomo not found (set MIHOMO or add it to PATH): skipping .mrs")
 
     counts = {}
     for variant in plan:
-        chosen = variants.apply(variant, resolved, ranks)
+        chosen = variants.apply(variant, resolved, rank)
         counts[variant.name] = write_variant(Path(args.out) / variant.name, chosen, mihomo)
 
     print_counts(list(resolver.local), plan, counts)

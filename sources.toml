@@ -6,7 +6,7 @@
 #   domains  bare domains with whatever noise comes with them
 #   cidr     one network per line
 #   ripe     RIPE NCC delegated-extended file, networks of one country
-#   crux     Chrome UX Report top sites for one country, used to rank bulk lists
+#   crux     Chrome UX Report top sites by country, used to rank bulk lists
 #
 # min:  refuse a download with fewer entries and keep the previous copy
 # bulk: huge lists; variants keep only their most popular part
@@ -70,5 +70,7 @@ lists.ru = { url = "https://ftp.ripe.net/pub/stats/ripencc/delegated-ripencc-ext
 [crux]
 homepage = "https://github.com/zakird/crux-top-lists"
 format = "crux"
-country = "ru"
-url = "https://raw.githubusercontent.com/zakird/crux-top-lists/main/data/country/{country}/{month}.csv.gz"
+url = "https://raw.githubusercontent.com/zakird/crux-top-lists/main/data/{path}/{month}.csv.gz"
+# Russia, then neighbours where Russian is widely spoken, then countries VPN users
+# exit through: a site that opens from Russia only over a VPN is counted there.
+countries = ["ru", "by", "kz", "ua", "lv", "ee", "lt", "am", "ge", "uz", "de", "nl", "fi", "global"]
