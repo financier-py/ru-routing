@@ -99,6 +99,37 @@ ru-blocked: domain:chatgpt.com  (runetfreedom/ru-blocked:81)
 If upstream lists can't be reached from where you are, download them elsewhere
 with `python -m ru_routing fetch`, copy `.cache/` over and build with `--offline`.
 
+## Checks
+
+[`checks.txt`](checks.txt) lists what must and must not land in a category:
+`youtube.com` in `youtube`, `gosuslugi.ru` in `ru` and never in `ru-unreachable`,
+and so on. Run them against a build, and compare two builds:
+
+```
+python -m ru_routing check
+python -m ru_routing diff old/dist dist
+```
+
+Some categories overlap on purpose. `ru-unreachable` holds all of `google.com`,
+because several Google services refuse Russia, so push notifications sit inside
+it. Put `ip-check` and `push` above `ru-unreachable` in your config.
+
+## Memory
+
+VPN extensions on iOS live within 50 MB and are killed the moment they cross
+it, usually while loading lists at startup. `tools/memory.py` starts a core with
+every category of a variant and watches its peak:
+
+```
+tools/build-xray.sh v26.10.31        # Xray with the matcher phones get
+python tools/memory.py --xray ./xray-mobile --mihomo mihomo dist/lite
+```
+
+Xray picks its domain matcher by OS, and the desktop one costs several times
+more, so measure with the mobile build. With every category of `lite` loaded
+at once, the lists cost Xray 26.10.31 about 10 MiB at the peak and 7–9 MiB after
+startup; Mihomo 1.19 about 11–14 MiB and 6 MiB.
+
 ## License
 
 The code is MIT. The lists include GPL-3.0 data, so the lists themselves are
