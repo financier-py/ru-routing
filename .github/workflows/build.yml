@@ -57,6 +57,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tools/package.sh dist out
+          python tools/targets.py dist/lite > out/targets.txt
           if gh release download --pattern SHA256SUMS --output previous.sums 2>/dev/null && cmp -s previous.sums out/SHA256SUMS; then
             echo "Nothing changed since the last release."
             exit 0
