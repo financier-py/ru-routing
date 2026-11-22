@@ -1,12 +1,24 @@
 import unittest
 
-from ru_routing.resolve import Resolver, matches, minimize
+from ru_routing.resolve import Origin, Resolver, matches, minimize
 from ru_routing.rules import FormatError, Link, Rule, parse, parse_line
 
 
+class FakeSource:
+    def __init__(self, bulk):
+        self.bulk = bulk
+
+    def is_bulk(self, name):
+        return name in self.bulk
+
+
 class FakeUpstream:
-    def __init__(self, lists):
+    def __init__(self, lists, bulk=()):
         self.lists = lists
+        self.bulk = bulk
+
+    def source(self, name):
+        return FakeSource(self.bulk)
 
     def category(self, source, name):
         ref = f"{source}/{name}"
@@ -16,9 +28,9 @@ class FakeUpstream:
         return {"62041": ["91.108.4.0/22", "91.108.8.0/22"]}[number]
 
 
-def resolver(local, upstream=None):
+def resolver(local, upstream=None, bulk=()):
     categories = {name: parse(name, text, f"data/{name}") for name, text in local.items()}
-    return Resolver(categories, FakeUpstream(upstream or {}))
+    return Resolver(categories, FakeUpstream(upstream or {}, bulk))
 
 
 def values(entries):
@@ -72,17 +84,25 @@ class ResolveTest(unittest.TestCase):
 
     def test_origin(self):
         r = resolver({"x": "include:v2fly/y", "z": "a.com"}, {"v2fly/y": "\nb.com"})
-        self.assertEqual(r.resolve("x"), {Rule("domain", "b.com"): "v2fly/y:2"})
+        self.assertEqual(r.resolve("x"), {Rule("domain", "b.com"): Origin("v2fly/y:2", False)})
+
+    def test_curated_origin_wins_over_bulk(self):
+        r = resolver({"x": "include:reg/all\ninclude:reg/short"},
+                     {"reg/all": "a.com\nb.com", "reg/short": "a.com"}, bulk={"all"})
+        self.assertEqual({str(k): v.bulk for k, v in r.resolve("x").items()},
+                         {"domain:a.com": False, "domain:b.com": True})
 
 
 class MinimizeTest(unittest.TestCase):
     def test_drops_covered_domains(self):
-        entries = {Rule("domain", "a.com"): "", Rule("domain", "x.a.com"): "", Rule("full", "a.com"): "",
-                   Rule("full", "b.com"): ""}
+        o = Origin("", False)
+        entries = {Rule("domain", "a.com"): o, Rule("domain", "x.a.com"): o, Rule("full", "a.com"): o,
+                   Rule("full", "b.com"): o}
         self.assertEqual(values(minimize(entries)), ["domain:a.com", "full:b.com"])
 
     def test_merges_networks(self):
-        entries = {Rule("ip", "10.0.0.0/25"): "", Rule("ip", "10.0.0.128/25"): "", Rule("ip", "::1/128"): ""}
+        o = Origin("", False)
+        entries = {Rule("ip", "10.0.0.0/25"): o, Rule("ip", "10.0.0.128/25"): o, Rule("ip", "::1/128"): o}
         self.assertEqual(values(minimize(entries)), ["ip:10.0.0.0/24", "ip:::1/128"])
 
 

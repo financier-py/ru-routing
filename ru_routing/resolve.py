@@ -2,8 +2,21 @@
 
 import ipaddress
 import re
+from typing import NamedTuple
 
 from .rules import DOMAIN_KINDS, FormatError, Rule
+
+
+class Origin(NamedTuple):
+    where: str  # file and line, or the upstream list
+    bulk: bool  # came only from a bulk list, so variants may trim it
+
+
+def merge(out, rule, origin):
+    """Add a rule, preferring an origin that is not bulk."""
+    old = out.get(rule)
+    if old is None or (old.bulk and not origin.bulk):
+        out[rule] = origin
 
 
 def excluder(excluded):
@@ -47,8 +60,8 @@ def matches(rule, target):
 def minimize(entries):
     """Drop duplicates and rules already matched by a broader domain or network."""
     unique = {}
-    for rule, where in entries.items():
-        unique.setdefault(Rule(rule.kind, rule.value), where)
+    for rule, origin in entries.items():
+        merge(unique, Rule(rule.kind, rule.value), origin)
     entries = unique
     domains = {r.value for r in entries if r.kind == "domain"}
 
@@ -64,7 +77,7 @@ def minimize(entries):
     collapsed = {str(n) for v in (4, 6) for n in ipaddress.collapse_addresses(x for x in nets if x.version == v)}
     out = {r: w for r, w in kept.items() if r.kind != "ip" or r.value in collapsed}
     for value in collapsed - {r.value for r in out if r.kind == "ip"}:
-        out[Rule("ip", value)] = "merged"
+        out[Rule("ip", value)] = Origin("merged", False)
     return out
 
 
@@ -89,15 +102,18 @@ class Resolver:
         if ref in _stack:
             raise FormatError("include cycle: " + " -> ".join(_stack + (ref,)))
         category = self._category(ref)
-        namespace = ref.rpartition("/")[0]
+        namespace, _, name = ref.rpartition("/")
+        bulk = bool(namespace) and self.upstream.source(namespace).is_bulk(name)
 
         out = {}
+        origins = {}  # one Origin per place, not per rule: lists can have millions of rules
         for rule, where in category.rules:
             if rule.kind == "asn":
                 for prefix in self.upstream.asn(rule.value):
-                    out.setdefault(Rule("ip", prefix, rule.attrs), f"{where} AS{rule.value}")
+                    merge(out, Rule("ip", prefix, rule.attrs), Origin(f"{where} AS{rule.value}", bulk))
             else:
-                out.setdefault(rule, where)
+                origin = origins.get(where) or origins.setdefault(where, Origin(where, bulk))
+                merge(out, rule, origin)
 
         excluded = []
         for link, where in category.links:
@@ -106,14 +122,15 @@ class Resolver:
             picked = {r: w for r, w in self.resolve(target, _stack + (ref,)).items() if link.accepts(r)}
             if link.op == "include":
                 for rule, origin in picked.items():
-                    out.setdefault(rule, origin)
+                    merge(out, rule, origin)
             else:
                 excluded.extend(picked)
 
         if excluded:
             hit = excluder(excluded)
             out = {r: w for r, w in out.items() if not hit(r)}
-        self._done[ref] = out
+        if not namespace:  # upstream lists are included once, keeping them would only cost memory
+            self._done[ref] = out
         return out
 
 

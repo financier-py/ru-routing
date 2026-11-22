@@ -31,7 +31,7 @@ class FormatError(ValueError):
     pass
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(frozen=True, order=True, slots=True)
 class Rule:
     kind: str
     value: str
@@ -58,14 +58,16 @@ class Category:
     description: str = ""
     rules: list[tuple[Rule, str]] = field(default_factory=list)
     links: list[tuple[Link, str]] = field(default_factory=list)
+    skipped: int = 0
 
 
 def normalize_domain(value):
     value = value.strip().lower().rstrip(".")
-    try:
-        value = value.encode("idna").decode()
-    except UnicodeError:
-        raise FormatError(f"bad domain: {value}") from None
+    if not value.isascii():
+        try:
+            value = value.encode("idna").decode()
+        except UnicodeError:
+            raise FormatError(f"bad domain: {value}") from None
     if not all(_label.match(part) for part in value.split(".")):
         raise FormatError(f"bad domain: {value}")
     return value
@@ -116,7 +118,12 @@ def parse_line(line):
     return parse_rule(head, attrs)
 
 
-def parse(name, text, origin):
+def parse(name, text, origin, strict=True, lines=True):
+    """Parse a category file.
+
+    strict=False counts and skips bad lines, which is what upstream lists need:
+    one typo there should not stop the build. lines=False records only the list
+    name as the origin, which saves a lot of memory on lists with millions of lines."""
     category = Category(name)
     description = []
     for n, line in enumerate(text.splitlines(), 1):
@@ -127,8 +134,11 @@ def parse(name, text, origin):
         try:
             item = parse_line(line)
         except FormatError as e:
-            raise FormatError(f"{origin}:{n}: {e}") from None
-        where = f"{origin}:{n}"
+            if strict:
+                raise FormatError(f"{origin}:{n}: {e}") from None
+            category.skipped += 1
+            continue
+        where = f"{origin}:{n}" if lines else origin
         if isinstance(item, Rule):
             category.rules.append((item, where))
         elif isinstance(item, Link):
