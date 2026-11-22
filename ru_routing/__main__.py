@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import formats, rules, sources, variants, verify
+from . import formats, probe, rules, scan, sources, variants, verify
 from .resolve import Resolver, matches, minimize, split
 
 
@@ -123,6 +123,25 @@ def diff(args):
         print(line)
 
 
+def run_scan(args):
+    resolver = probe.resolve_via(args.dns, args.interface) if args.dns else None
+    if not args.no_vpn_check:
+        scan.check_no_vpn(args.interface, resolver)
+    scan.run(scan.load_targets(args.targets, args.limit), args.out, args.jobs, args.interface, resolver)
+
+
+def run_verdicts(args):
+    results = scan.verdicts(args.home, args.abroad)
+    counts = {}
+    for v in results.values():
+        counts[v] = counts.get(v, 0) + 1
+    print(", ".join(f"{v}: {n}" for v, n in sorted(counts.items(), key=lambda x: -x[1])))
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    for kind in ("blocked", "throttled", "geoblocked", "works"):
+        (out / f"{kind}.txt").write_text("".join(f"{h}\n" for h, v in sorted(results.items()) if v == kind))
+
+
 def main():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--data", default="data")
@@ -154,6 +173,22 @@ def main():
     p.add_argument("old")
     p.add_argument("new")
     p.set_defaults(func=diff)
+
+    p = sub.add_parser("scan", help="check from Russia which sites open")
+    p.add_argument("targets", help="file with one host per line, most important first")
+    p.add_argument("-o", "--out", default="scan.jsonl")
+    p.add_argument("--jobs", type=int, default=64)
+    p.add_argument("--limit", type=int, help="check only the first N hosts")
+    p.add_argument("--interface", help="Linux: go out through this interface, bypassing a VPN")
+    p.add_argument("--dns", help="ask this DNS server instead of the system resolver")
+    p.add_argument("--no-vpn-check", action="store_true")
+    p.set_defaults(func=run_scan)
+
+    p = sub.add_parser("verdicts", help="compare a scan from Russia with one from abroad")
+    p.add_argument("home")
+    p.add_argument("abroad")
+    p.add_argument("-o", "--out", default="findings")
+    p.set_defaults(func=run_verdicts)
 
     args = parser.parse_args()
     try:

@@ -157,13 +157,13 @@ class Cache:
         data = json.loads(self._fetch(f"asn/{number}.json", url))
         return sorted(p["prefix"] for p in data["data"]["prefixes"])
 
-    def ranks(self, name="crux"):
+    def ranks(self, name="crux", countries=None):
         """Yield (host, rank bucket) from the CrUX top lists of every configured country.
 
         A host shows up once per list it is in; the caller keeps the best rank.
         Monthly files appear a few weeks after the month ends, so try the last few."""
         source = self.source(name)
-        for country in source.countries:
+        for country in countries or source.countries:
             path = "global" if country == "global" else f"country/{country}"
             data = gzip.decompress(self._fetch(f"{name}/{country}.csv.gz", self._months(source.url, path)))
             for line in data.decode().splitlines()[1:]:
