@@ -1,7 +1,7 @@
 # Hypixel, the Minecraft server. The game speaks its own protocol, so a VPN
-# client never sees the server name and has to go by address.
+# client never sees the server name and has to go by address. The website
+# sits on shared Cloudflare addresses, so it goes by name only.
 
 hypixel.net
 hypixel.io
 resolve:mc.hypixel.net
-resolve:hypixel.net
