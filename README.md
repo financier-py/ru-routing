@@ -1,58 +1,58 @@
 # ru-routing
 
-Списки доменов и адресов для раздельного туннелирования из России: что без VPN
-не открывается и что, наоборот, лучше пускать напрямую.
+Domain and IP lists for split tunneling from Russia: what doesn't open without
+a VPN, and what is better left outside of it.
 
-Категория говорит только о том, что в ней лежит: `youtube`, `telegram`,
-`ru-blocked`, `ip-check`. Куда отправлять трафик, решает ваш конфиг.
+A category only says what it contains: `youtube`, `telegram`, `ru-blocked`,
+`ip-check`. Where the traffic goes is up to your config.
 
-Проект в разработке: пока собираются текстовые списки, форматы для Xray,
-Mihomo и sing-box будут следующими.
+Work in progress: for now the build produces plain text lists. Xray, Mihomo
+and sing-box formats come next.
 
-## Категории
+## Categories
 
-| Категория | Что внутри |
+| Category | Contents |
 |---|---|
-| `ai` | Нейросети: ChatGPT, Claude, Gemini, Copilot, Perplexity и другие |
-| `ip-check` | Сервисы, которые показывают ваш IP и где он находится |
-| `push` | Push-уведомления Apple и Google |
-| `ru-blocked` | Заблокированное Роскомнадзором, очищенная часть реестра |
-| `telegram` | Telegram: приложения, веб и сети его дата-центров |
-| `youtube` | YouTube: сайт, приложения, плеер и видео |
+| `ai` | AI services: ChatGPT, Claude, Gemini, Copilot, Perplexity and others |
+| `ip-check` | Services that show your IP address and where it is |
+| `push` | Push notifications from Apple and Google |
+| `ru-blocked` | Blocked by Roskomnadzor, the curated part of the registry |
+| `telegram` | Telegram: apps, web and the networks of its data centers |
+| `youtube` | YouTube: site, apps, player and video CDN |
 
-## Формат
+## Format
 
-Категория — это файл в `data/`. Формат тот же, что у
-[v2fly/domain-list-community](https://github.com/v2fly/domain-list-community),
-с несколькими дополнениями:
-
-```
-# Первый блок комментариев — описание категории.
-
-example.com                  домен со всеми поддоменами
-full:www.example.com         только этот адрес
-keyword:example              подстрока
-regexp:^ex(am)?ple\.         регулярное выражение
-ip:91.108.4.0/22             сеть
-asn:62041                    все сети автономной системы
-include:youtube              другая категория
-include:v2fly/google @ads    список из источника, только записи с @ads
-exclude:ip-check             убрать то, что есть в другой категории
-```
-
-Источники описаны в [`sources.toml`](sources.toml).
-
-## Сборка
-
-Нужен Python 3.11 или новее, сторонних зависимостей нет.
+A category is a file in `data/`. The format is the one of
+[v2fly/domain-list-community](https://github.com/v2fly/domain-list-community)
+with a few additions:
 
 ```
-python -m ru_routing build          # списки в dist/
+# The first comment block describes the category.
+
+example.com                  the domain and all its subdomains
+full:www.example.com         this exact name only
+keyword:example              substring
+regexp:^ex(am)?ple\.         regular expression
+ip:91.108.4.0/22             network
+asn:62041                    every network of an autonomous system
+include:youtube              another category
+include:v2fly/google @ads    an upstream list, entries marked @ads only
+exclude:ip-check             drop whatever another category has
+```
+
+Upstream lists are described in [`sources.toml`](sources.toml).
+
+## Building
+
+Python 3.11 or newer, no dependencies.
+
+```
+python -m ru_routing build          # lists go to dist/
 python -m ru_routing why chatgpt.com
 ```
 
-`why` показывает, в какие категории попадает домен или адрес и откуда взялась
-каждая запись:
+`why` tells which categories match a domain or an address, and where each
+entry came from:
 
 ```
 $ python -m ru_routing why chatgpt.com
@@ -60,7 +60,7 @@ ai: domain:chatgpt.com  (v2fly/openai:3)
 ru-blocked: domain:chatgpt.com  (runetfreedom/ru-blocked:81)
 ```
 
-## Лицензия
+## License
 
-Код распространяется по лицензии MIT. Собранные списки включают данные под
-GPL-3.0, поэтому сами списки тоже под GPL-3.0.
+The code is MIT. The lists include GPL-3.0 data, so the lists themselves are
+GPL-3.0.
