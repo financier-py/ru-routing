@@ -95,19 +95,30 @@ def run(targets, out, jobs=64, route=None, resolver=None):
     with out.open("a", encoding="utf-8") as f, ThreadPoolExecutor(jobs) as pool:
         while True:
             for host in queue:
-                pending.add(pool.submit(probe.fetch, host, route, resolver))
+                future = pool.submit(probe.fetch, host, route, resolver)
+                future.host = host
+                pending.add(future)
                 if len(pending) >= jobs * 2:
                     break
             if not pending:
                 break
             done_now, pending = wait(pending, return_when=FIRST_COMPLETED)
             for future in done_now:
-                f.write(json.dumps(future.result(), ensure_ascii=False) + "\n")
+                f.write(json.dumps(_result(future), ensure_ascii=False) + "\n")
                 n += 1
                 if n % 100 == 0:
                     f.flush()
                 if n % 1000 == 0:
                     print(f"{n}/{len(todo)}", file=sys.stderr)
+
+
+def _result(future):
+    """One odd site must not stop a run that takes a day: record the error and go on."""
+    try:
+        return future.result()
+    except Exception as e:  # noqa: BLE001
+        return {"host": future.host, "status": None, "bytes": 0, "stage": "scanner", "ip": None,
+                "error": f"{type(e).__name__}: {e}"[:120]}
 
 
 def load(*paths):

@@ -159,7 +159,8 @@ def _get(host, path, route, resolver, result, limit=LIMIT):
         sock.settimeout(READ_TIMEOUT)
         conn = http.client.HTTPConnection(host)
         conn.sock = sock
-        conn.request("GET", path, headers={"User-Agent": USER_AGENT, "Accept": "text/html,*/*",
+        # http.client sends the request line as ASCII; redirects may point to Cyrillic paths
+        conn.request("GET", urllib.parse.quote(path, safe="/?&=%:+,;@!$'()*~#[]"), headers={"User-Agent": USER_AGENT, "Accept": "text/html,*/*",
                                            "Accept-Language": "ru,en;q=0.8", "Accept-Encoding": "identity"})
         response = conn.getresponse()
         stage = "body"
@@ -170,11 +171,15 @@ def _get(host, path, route, resolver, result, limit=LIMIT):
             body += chunk
         conn.close()
         return response.status, response.getheader("Location"), bytes(body)
-    except (OSError, http.client.HTTPException) as e:
+    except (OSError, ValueError, http.client.HTTPException) as e:
         result["stage"] = stage
         result["error"] = type(e).__name__ if str(e) == "" else f"{type(e).__name__}: {e}"[:120]
         result["bytes"] = len(body)
         return None, None, None
+
+
+def _ascii(host):
+    return host if host.isascii() else host.encode("idna").decode()
 
 
 def split_target(target):
@@ -205,6 +210,11 @@ def fetch(target, route=None, resolver=None, deep=True):
     start = time.monotonic()
     url_host, path = split_target(target)
     for _ in range(MAX_REDIRECTS + 1):
+        try:
+            url_host = _ascii(url_host)
+        except UnicodeError:
+            result.update(stage="dns", error="bad host name")
+            break
         status, location, body = _get(url_host, path, route, resolver, result, LIMIT if deep else RESOURCE_LIMIT)
         if status is None:
             break
