@@ -9,6 +9,7 @@ import gzip
 import io
 import ipaddress
 import json
+import socket
 import tarfile
 import tomllib
 import urllib.request
@@ -157,6 +158,22 @@ class Cache:
         data = json.loads(self._fetch(f"asn/{number}.json", url))
         return sorted(p["prefix"] for p in data["data"]["prefixes"])
 
+    def addresses(self, host):
+        """Current IPv4 and IPv6 addresses of a name, for services that are reached
+        by address (game servers, voice) and so can't be matched by domain.
+        Offline builds reuse what the last online build saw."""
+        path = self.root / "resolve" / host
+        if not self.offline:
+            try:
+                found = sorted({a[4][0] for a in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)})
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("".join(f"{a}\n" for a in found))
+            except OSError as e:
+                self.warnings.append(f"resolve {host}: {e}; using the cached addresses")
+        if not path.exists():
+            raise FileNotFoundError(f"resolve {host}: no answer and no cached addresses")
+        return [str(ipaddress.ip_network(a)) for a in path.read_text().split()]
+
     def ranks(self, name="crux", countries=None):
         """Yield (host, rank bucket) from the CrUX top lists of every configured country.
 
@@ -181,17 +198,18 @@ class Cache:
 
     def fetch_all(self, asns=()):
         """Download everything sources.toml mentions, for a later --offline build."""
+        jobs = []
         for source in self.sources.values():
+            if source.format == "v2fly":
+                jobs.append(lambda s=source: self._v2fly(s))
+            elif source.format == "crux":
+                jobs.append(lambda s=source: [None for _ in self.ranks(s.name)])
+            else:
+                for name, spec in source.lists.items():
+                    jobs.append(lambda key=f"{source.name}/{name}", spec=spec: self._fetch(key, spec["url"], spec.get("min", 1)))
+        jobs += [lambda n=n: self.asn(n) for n in asns]
+        for job in jobs:  # one missing list should not stop the others
             try:
-                if source.format == "v2fly":
-                    self._v2fly(source)
-                elif source.format == "crux":
-                    for _ in self.ranks(source.name):
-                        pass
-                else:
-                    for list_name, spec in source.lists.items():
-                        self._fetch(f"{source.name}/{list_name}", spec["url"], spec.get("min", 1))
+                job()
             except FileNotFoundError as e:
                 self.warnings.append(str(e))
-        for number in asns:
-            self.asn(number)

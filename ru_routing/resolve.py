@@ -111,6 +111,9 @@ class Resolver:
             if rule.kind == "asn":
                 for prefix in self.upstream.asn(rule.value):
                     merge(out, Rule("ip", prefix, rule.attrs), Origin(f"{where} AS{rule.value}", bulk))
+            elif rule.kind == "resolve":
+                for address in self.upstream.addresses(rule.value):
+                    merge(out, Rule("ip", address, rule.attrs), Origin(f"{where} {rule.value}", bulk))
             else:
                 origin = origins.get(where) or origins.setdefault(where, Origin(where, bulk))
                 merge(out, rule, origin)

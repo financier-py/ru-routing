@@ -9,6 +9,7 @@ A superset of v2fly/domain-list-community:
     regexp:^ex(am)?ple\\.
     ip:91.108.4.0/22
     asn:62041
+    resolve:mc.hypixel.net       the addresses this name has at build time
     include:other-category @attr @-attr
     include:v2fly/google @ads
     exclude:ip-check
@@ -22,7 +23,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 DOMAIN_KINDS = ("domain", "full", "keyword", "regexp")
-KINDS = DOMAIN_KINDS + ("ip", "asn")
+KINDS = DOMAIN_KINDS + ("ip", "asn", "resolve")
 
 _label = re.compile(r"^(?!-)[a-z0-9_-]{1,63}(?<!-)$")
 
@@ -77,7 +78,7 @@ def parse_rule(text, attrs=frozenset()):
     kind, sep, value = text.partition(":")
     if not sep or kind not in KINDS:
         kind, value = "domain", text
-    if kind in ("domain", "full"):
+    if kind in ("domain", "full", "resolve"):
         value = normalize_domain(value)
     elif kind == "keyword":
         value = value.lower()

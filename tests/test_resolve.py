@@ -27,6 +27,9 @@ class FakeUpstream:
     def asn(self, number):
         return {"62041": ["91.108.4.0/22", "91.108.8.0/22"]}[number]
 
+    def addresses(self, host):
+        return {"mc.example.com": ["192.0.2.7/32"]}[host]
+
 
 def resolver(local, upstream=None, bulk=()):
     categories = {name: parse(name, text, f"data/{name}") for name, text in local.items()}
@@ -81,6 +84,10 @@ class ResolveTest(unittest.TestCase):
     def test_asn(self):
         r = resolver({"tg": "asn:62041"})
         self.assertEqual(values(r.resolve("tg")), ["ip:91.108.4.0/22", "ip:91.108.8.0/22"])
+
+    def test_resolve(self):
+        r = resolver({"game": "resolve:mc.example.com"})
+        self.assertEqual(values(r.resolve("game")), ["ip:192.0.2.7/32"])
 
     def test_origin(self):
         r = resolver({"x": "include:v2fly/y", "z": "a.com"}, {"v2fly/y": "\nb.com"})
