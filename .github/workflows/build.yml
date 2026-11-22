@@ -15,8 +15,12 @@ concurrency:
   group: build
 
 env:
-  XRAY: v26.10.31
-  MIHOMO: v1.19.34
+  XRAY_VERSION: v26.10.31
+  MIHOMO_VERSION: v1.19.34
+
+defaults:
+  run:
+    shell: bash   # with pipefail: a failed build must not hide behind tee
 
 jobs:
   build:
@@ -34,11 +38,11 @@ jobs:
       - name: Cores
         run: |
           mkdir -p bin
-          curl -fsSL "https://github.com/MetaCubeX/mihomo/releases/download/$MIHOMO/mihomo-linux-amd64-$MIHOMO.gz" | gunzip > bin/mihomo
-          curl -fsSL -o xray.zip "https://github.com/XTLS/Xray-core/releases/download/$XRAY/Xray-linux-64.zip"
+          curl -fsSL "https://github.com/MetaCubeX/mihomo/releases/download/$MIHOMO_VERSION/mihomo-linux-amd64-$MIHOMO_VERSION.gz" | gunzip > bin/mihomo
+          curl -fsSL -o xray.zip "https://github.com/XTLS/Xray-core/releases/download/$XRAY_VERSION/Xray-linux-64.zip"
           unzip -q xray.zip xray -d bin && rm xray.zip
           chmod +x bin/mihomo bin/xray
-          (cd bin && ../tools/build-xray.sh "$XRAY")
+          (cd bin && ../tools/build-xray.sh "$XRAY_VERSION")
           echo "$PWD/bin" >> "$GITHUB_PATH"
 
       - name: Build
