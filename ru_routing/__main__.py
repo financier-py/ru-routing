@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import formats, probe, rules, scan, sources, variants, verify
+from . import direct, formats, probe, rules, scan, sources, variants, verify
 from .resolve import Resolver, matches, minimize, split
 
 
@@ -124,22 +124,33 @@ def diff(args):
 
 
 def run_scan(args):
-    resolver = probe.resolve_via(args.dns, args.interface) if args.dns else None
-    if not args.no_vpn_check:
-        scan.check_no_vpn(args.interface, resolver)
-    scan.run(scan.load_targets(args.targets, args.limit), args.out, args.jobs, args.interface, resolver)
+    route = direct.Direct(interface=args.interface or "", dns=args.dns or "") if args.interface else None
+    if args.no_vpn_check:
+        resolver = probe.resolve_via(args.dns, route) if args.dns else None
+    else:
+        route, resolver = scan.prepare(route)
+    direct.keep_awake()
+    scan.run(scan.load_targets(args.targets, args.limit), args.out, args.jobs, route, resolver)
 
 
 def run_verdicts(args):
-    results = scan.verdicts(args.home, args.abroad)
+    pages, resources, unchecked = scan.verdicts(args.home, *args.abroad)
+    found = dict(pages)
+    for host, v in resources.items():
+        if v != "works":
+            found.setdefault(host, v)
     counts = {}
-    for v in results.values():
+    for v in found.values():
         counts[v] = counts.get(v, 0) + 1
     print(", ".join(f"{v}: {n}" for v, n in sorted(counts.items(), key=lambda x: -x[1])))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     for kind in ("blocked", "throttled", "geoblocked", "works"):
-        (out / f"{kind}.txt").write_text("".join(f"{h}\n" for h, v in sorted(results.items()) if v == kind))
+        (out / f"{kind}.txt").write_text("".join(f"{h}\n" for h, v in sorted(found.items()) if v == kind), encoding="utf-8")
+    if unchecked:
+        (out / "recheck.txt").write_text("".join(f"{u}\n" for u in sorted(unchecked)), encoding="utf-8")
+        print(f"{len(unchecked)} resources failed at home with nothing to compare abroad: "
+              f"scan {out / 'recheck.txt'} abroad and pass it as one more abroad file")
 
 
 def main():
@@ -179,14 +190,14 @@ def main():
     p.add_argument("-o", "--out", default="scan.jsonl")
     p.add_argument("--jobs", type=int, default=64)
     p.add_argument("--limit", type=int, help="check only the first N hosts")
-    p.add_argument("--interface", help="Linux: go out through this interface, bypassing a VPN")
-    p.add_argument("--dns", help="ask this DNS server instead of the system resolver")
+    p.add_argument("--interface", help="go out through this interface instead of finding one")
+    p.add_argument("--dns", help="DNS server to use with --interface")
     p.add_argument("--no-vpn-check", action="store_true")
     p.set_defaults(func=run_scan)
 
     p = sub.add_parser("verdicts", help="compare a scan from Russia with one from abroad")
     p.add_argument("home")
-    p.add_argument("abroad")
+    p.add_argument("abroad", nargs="+")
     p.add_argument("-o", "--out", default="findings")
     p.set_defaults(func=run_verdicts)
 

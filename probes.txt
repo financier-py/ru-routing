@@ -1,0 +1,13 @@
+# Service pages and APIs that show a regional refusal even when the main site
+# loads fine. tools/targets.py puts them at the top of every scan.
+
+https://api.openai.com/v1/models
+https://api.anthropic.com/v1/models
+https://api.x.ai/v1/models
+https://chatgpt.com/
+https://claude.ai/login
+https://notebooklm.google.com/
+https://www.perplexity.ai/
+https://copilot.microsoft.com/
+https://www.spotify.com/
+https://www.netflix.com/

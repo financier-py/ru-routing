@@ -14,7 +14,7 @@ class Lists:
             name = path.stem
             self.domains[name], self.full[name] = set(), set()
             self.keywords[name], self.regexps[name] = [], []
-            for line in path.read_text().splitlines():
+            for line in path.read_text(encoding="utf-8").splitlines():
                 kind, _, value = line.partition(":")
                 if kind == "domain":
                     self.domains[name].add(value)
@@ -25,7 +25,7 @@ class Lists:
                 elif kind == "regexp":
                     self.regexps[name].append(re.compile(value))
         for path in sorted(Path(variant, "text", "geoip").glob("*.txt")):
-            self.networks[path.stem] = [ipaddress.ip_network(line) for line in path.read_text().split()]
+            self.networks[path.stem] = [ipaddress.ip_network(line) for line in path.read_text(encoding="utf-8").split()]
 
     @property
     def names(self):
@@ -47,7 +47,7 @@ class Lists:
 def load_checks(path):
     """Lines of `target  category !category ...`."""
     checks = []
-    for n, line in enumerate(Path(path).read_text().splitlines(), 1):
+    for n, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
         line = line.split("#", 1)[0].split()
         if line:
             checks.append((n, line[0].lower(), line[1:]))
@@ -74,8 +74,8 @@ def diff(old, new, sample=5):
     old, new = Path(old), Path(new)
     files = {p.relative_to(old) for p in old.rglob("text/**/*.txt")} | {p.relative_to(new) for p in new.rglob("text/**/*.txt")}
     for rel in sorted(files):
-        before = set((old / rel).read_text().splitlines()) if (old / rel).exists() else set()
-        after = set((new / rel).read_text().splitlines()) if (new / rel).exists() else set()
+        before = set((old / rel).read_text(encoding="utf-8").splitlines()) if (old / rel).exists() else set()
+        after = set((new / rel).read_text(encoding="utf-8").splitlines()) if (new / rel).exists() else set()
         added, removed = sorted(after - before), sorted(before - after)
         if added or removed:
             examples = ", ".join([f"+{x}" for x in added[:sample]] + [f"-{x}" for x in removed[:sample]])

@@ -7,6 +7,8 @@ Two kinds of hosts, mixed by popularity:
   broken, or does it open fine without a VPN?
 - foreign sites popular in Russia that no list mentions: do any of them fail?
 
+Service checks from probes.txt go first.
+
 Popularity comes from the CrUX lists in the cache (run `python -m ru_routing fetch`).
 A domain from the lists is checked through its most visited host, so that
 `example.com` is tested as `www.example.com` when that is what people open.
@@ -51,6 +53,9 @@ def main():
     for domain in listed - covered:
         picked.setdefault(domain, UNRANKED)
 
+    for line in Path("probes.txt").read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.startswith("#"):
+            print(0, line.strip())
     for host, rank in sorted(picked.items(), key=lambda x: (x[1], x[0])):
         print(rank if rank < UNRANKED else "-", host)
 

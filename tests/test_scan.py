@@ -23,6 +23,9 @@ class VerdictTest(unittest.TestCase):
         self.assertEqual(verdict(home(marks=["geo"]), OK), "geoblocked")
         self.assertEqual(verdict(home(status=451), OK), "geoblocked")
 
+    def test_api_refusal(self):
+        self.assertEqual(verdict(home(status=403), {**OK, "status": 401}), "geoblocked")
+
     def test_stub_page(self):
         self.assertEqual(verdict(home(marks=["block"]), OK), "blocked")
 
