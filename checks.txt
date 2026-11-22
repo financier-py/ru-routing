@@ -1,0 +1,39 @@
+# What must land in a category, and what must not (prefixed with !).
+# `python -m ru_routing check` runs these against every built variant.
+
+youtube.com             youtube ru-unreachable
+googlevideo.com         youtube
+i.ytimg.com             youtube
+
+chatgpt.com             ai ru-unreachable
+claude.ai               ai
+gemini.google.com       ai
+
+web.telegram.org        telegram
+t.me                    telegram
+149.154.167.99          telegram
+
+instagram.com           ru-unreachable
+x.com                   ru-unreachable
+discord.com             ru-unreachable
+rutracker.org           ru-blocked ru-unreachable
+linkedin.com            ru-blocked ru-unreachable
+
+ipinfo.io               ip-check !ru-unreachable
+2ip.ru                  ip-check !ru-unreachable
+checkip.amazonaws.com   ip-check !ru-unreachable
+
+# ru-unreachable holds all of google.com (some Google services refuse Russia),
+# so push has to come before it in a config.
+mtalk.google.com        push
+alt3-mtalk.google.com   push
+courier.push.apple.com  push
+
+gosuslugi.ru            ru !ru-unreachable !ru-blocked
+sberbank.ru             ru !ru-unreachable
+yandex.ru               ru !ru-unreachable
+vk.com                  ru !ru-unreachable
+77.88.8.8               ru
+
+doubleclick.net         ads
+example.com             !ru-unreachable !ads !ru

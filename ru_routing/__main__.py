@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import formats, rules, sources, variants
+from . import formats, rules, sources, variants, verify
 from .resolve import Resolver, matches, minimize, split
 
 
@@ -105,6 +105,24 @@ def why(args):
     report(cache)
 
 
+def check(args):
+    checks = verify.load_checks(args.checks)
+    failed = 0
+    for variant in sorted(p for p in Path(args.dist).iterdir() if p.is_dir()):
+        failures = verify.check(variant, checks)
+        failed += len(failures)
+        print(f"{variant.name}: {len(checks)} checks, {len(failures)} failed")
+        for failure in failures:
+            print("  " + failure)
+    if failed:
+        sys.exit(1)
+
+
+def diff(args):
+    for line in verify.diff(args.old, args.new):
+        print(line)
+
+
 def main():
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--data", default="data")
@@ -126,6 +144,16 @@ def main():
     p = sub.add_parser("why", parents=[common], help="show which categories match a domain or an IP")
     p.add_argument("target")
     p.set_defaults(func=why)
+
+    p = sub.add_parser("check", help="run checks.txt against every built variant")
+    p.add_argument("--checks", default="checks.txt")
+    p.add_argument("dist", nargs="?", default="dist")
+    p.set_defaults(func=check)
+
+    p = sub.add_parser("diff", help="compare two builds")
+    p.add_argument("old")
+    p.add_argument("new")
+    p.set_defaults(func=diff)
 
     args = parser.parse_args()
     try:
