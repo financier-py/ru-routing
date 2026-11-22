@@ -86,7 +86,7 @@ def run(targets, out, jobs=64, route=None, resolver=None):
     out = Path(out)
     done = set()
     if out.exists():
-        done = {json.loads(line)["host"] for line in out.read_text(encoding="utf-8").splitlines() if line.strip()}
+        done = set(records(out))
     todo = [t for t in targets if t not in done]
     print(f"{len(todo)} to check, {len(done)} already done", file=sys.stderr)
     # Submit as slots free up instead of all at once: with hundreds of thousands
@@ -121,13 +121,22 @@ def _result(future):
                 "error": f"{type(e).__name__}: {e}"[:120]}
 
 
+def records(path):
+    """host -> record from a results file. A line cut short by a stopped scan is skipped."""
+    out = {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        out[record["host"]] = record
+    return out
+
+
 def load(*paths):
     out = {}
     for path in paths:
-        for line in Path(path).read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                record = json.loads(line)
-                out[record["host"]] = record
+        out.update(records(path))
     return out
 
 
@@ -159,7 +168,8 @@ def resource_verdicts(home, abroad):
     whatever the abroad scan fetched from the same host."""
     seen_abroad = {}
     for record in abroad.values():
-        for r in record.get("resources", []):
+        # resources fetched with their pages, and the ones rechecked on their own
+        for r in record.get("resources", []) + [record]:
             host = probe.split_target(r["host"])[0]
             if r["status"] and r["status"] < 400:
                 seen_abroad.setdefault(host, r)
