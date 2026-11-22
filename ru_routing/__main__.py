@@ -66,7 +66,7 @@ def build(args):
     cache = open_sources(args)
     resolver = Resolver(load_local(args.data), cache)
     resolved = {name: resolver.resolve(name) for name in resolver.local}
-    plan = variants.load_config(args.variants)
+    plan = [v for v in variants.load_config(args.variants) if not args.only or v.name in args.only.split(",")]
     rank = {}
     if any(v.bulk != "all" for v in plan):
         rank = variants.popularity(variants.bulk_domains(resolved), cache.ranks())
@@ -181,6 +181,7 @@ def main():
 
     p = sub.add_parser("build", parents=[common], help="build every variant into dist/")
     p.add_argument("--variants", default="variants.toml")
+    p.add_argument("--only", help="comma-separated variants to build, e.g. lite,full")
     p.add_argument("-o", "--out", default="dist")
     p.set_defaults(func=build)
 
