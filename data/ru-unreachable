@@ -1,0 +1,10 @@
+# Everything known not to open from Russia without a tunnel: blocked,
+# geoblocked or throttled. IP checkers are left out on purpose.
+
+include:ru-blocked
+include:geoblock-ru
+include:itdog/inside
+include:antifilter/community
+include:refilter/community
+
+exclude:ip-check

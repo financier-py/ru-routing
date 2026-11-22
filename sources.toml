@@ -1,11 +1,15 @@
 # Upstream lists. A category refers to them as `include:<source>/<list>`.
 #
 # format:
-#   v2fly   archive of v2fly/domain-list-community, lists are files in data/
-#   rules   one rule per line: domain:, full:, keyword:, regexp: or a bare domain
-#   cidr    one network per line
+#   v2fly    archive of v2fly/domain-list-community, lists are files in data/
+#   rules    one rule per line: domain:, full:, keyword:, regexp: or a bare domain
+#   domains  bare domains with whatever noise comes with them
+#   cidr     one network per line
+#   ripe     RIPE NCC delegated-extended file, networks of one country
+#   crux     Chrome UX Report top sites for one country, used to rank bulk lists
 #
-# min: refuse a download with fewer entries and keep the previous copy.
+# min:  refuse a download with fewer entries and keep the previous copy
+# bulk: huge lists; variants keep only their most popular part
 
 [v2fly]
 homepage = "https://github.com/v2fly/domain-list-community"
@@ -18,10 +22,53 @@ homepage = "https://github.com/runetfreedom/russia-blocked-geosite"
 license = "GPL-3.0"
 format = "rules"
 lists.ru-blocked = { url = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/ru-blocked.txt", min = 20000 }
-lists.ru-blocked-all = { url = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/ru-blocked-all.txt", min = 500000 }
+lists.ru-blocked-all = { url = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/ru-blocked-all.txt", min = 500000, bulk = true }
+lists.win-spy = { url = "https://raw.githubusercontent.com/runetfreedom/russia-blocked-geosite/release/win-spy.txt", min = 100 }
+
+[antifilter]
+homepage = "https://antifilter.download"
+license = "free to use"
+format = "domains"
+lists.domains = { url = "https://antifilter.download/list/domains.lst", min = 300000, bulk = true }
+lists.community = { url = "https://community.antifilter.download/list/domains.lst", min = 100 }
+
+[refilter]
+homepage = "https://github.com/1andrevich/Re-filter-lists"
+license = "MIT"
+format = "domains"
+lists.domains = { url = "https://github.com/1andrevich/Re-filter-lists/releases/latest/download/domains_all.lst", min = 10000 }
+lists.community = { url = "https://raw.githubusercontent.com/1andrevich/Re-filter-lists/main/community.lst", min = 100 }
+
+[no-russia-hosts]
+homepage = "https://github.com/dartraiden/no-russia-hosts"
+format = "domains"
+lists.hosts = { url = "https://raw.githubusercontent.com/dartraiden/no-russia-hosts/master/hosts.txt", min = 300 }
+
+[itdog]
+homepage = "https://github.com/itdoginfo/allow-domains"
+format = "domains"
+lists.inside = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-raw.lst", min = 500 }
+lists.geoblock = { url = "https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Categories/geoblock.lst", min = 100 }
+
+[oisd]
+homepage = "https://oisd.nl"
+license = "GPL-3.0"
+format = "domains"
+lists.small = { url = "https://small.oisd.nl/domainswild2", min = 30000 }
+lists.big = { url = "https://big.oisd.nl/domainswild2", min = 150000 }
 
 [telegram]
 homepage = "https://core.telegram.org/resources/cidr.txt"
-license = "public"
 format = "cidr"
 lists.cidr = { url = "https://core.telegram.org/resources/cidr.txt", min = 5 }
+
+[ripe]
+homepage = "https://www.ripe.net/manage-ips-and-asns/resource-management/rir-statistics/"
+format = "ripe"
+lists.ru = { url = "https://ftp.ripe.net/pub/stats/ripencc/delegated-ripencc-extended-latest", country = "RU", min = 100000 }
+
+[crux]
+homepage = "https://github.com/zakird/crux-top-lists"
+format = "crux"
+country = "ru"
+url = "https://raw.githubusercontent.com/zakird/crux-top-lists/main/data/country/{country}/{month}.csv.gz"

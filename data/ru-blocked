@@ -1,4 +1,9 @@
-# Blocked by Roskomnadzor. The curated part of the registry: no mirrors
-# and dead domains, so it stays small.
+# Blocked by Roskomnadzor. The curated lists come first; the full registry
+# with all its mirrors is a bulk list, so smaller variants keep only its
+# popular part.
 
 include:runetfreedom/ru-blocked
+include:refilter/domains
+
+include:runetfreedom/ru-blocked-all
+include:antifilter/domains

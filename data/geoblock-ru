@@ -1,0 +1,4 @@
+# Services that refuse Russian users on their own.
+
+include:no-russia-hosts/hosts
+include:itdog/geoblock
