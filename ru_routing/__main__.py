@@ -1,4 +1,5 @@
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -27,6 +28,8 @@ def write(path, data):
 def write_variant(out, chosen, mihomo):
     """Write one variant, a category at a time: .dat files are just entries one
     after another, so nothing has to hold every category at once."""
+    for old in ("text", "mihomo"):  # a category the variant no longer has must not linger
+        shutil.rmtree(out / old, ignore_errors=True)
     out.mkdir(parents=True, exist_ok=True)
     counts = {}
     with open(out / "geosite.dat", "wb") as geosite, open(out / "geoip.dat", "wb") as geoip:
