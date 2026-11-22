@@ -2,9 +2,10 @@
 
     python tools/findings.py --home first.jsonl --home second.jsonl --abroad se.jsonl --abroad fi.jsonl
 
-A host counts only if every home scan agrees: broken in all of them (and fine
-abroad), or working in all of them. One flaky connection should not move a site.
-Pages and the resources they load are both looked at.
+A host counts only if at least two home scans got an answer and all of them
+agree: broken (and fine abroad) or working. A scan without an answer, say a DNS
+timeout, says nothing either way. Pages and the resources they load are both
+looked at.
 """
 
 import argparse
@@ -61,10 +62,11 @@ def main():
     listed = verify.Lists(args.lists)
     abroad = scan.load(*args.abroad)
     runs = [verdicts(scan.load(path), abroad) for path in args.home]
-    hosts = set.intersection(*(set(r) for r in runs))
     found = {"scan-broken": set(), "scan-working": set()}
-    for host in hosts:
-        seen = [r[host] for r in runs]
+    for host in set().union(*runs):
+        seen = [r[host] for r in runs if r.get(host, "unknown") != "unknown"]
+        if len(seen) < 2:
+            continue
         if all(v in BROKEN for v in seen):
             found["scan-broken"].add(rule(host))
         elif all(v == "works" for v in seen) and listed.contains("ru-unreachable", host):

@@ -145,6 +145,9 @@ def verdict(home, abroad):
     if not abroad or abroad["status"] is None or abroad["status"] >= 500 or "challenge" in abroad.get("marks", []):
         return "unknown"  # no good page abroad either: dead, broken or behind a bot check
     if home["status"] is None:
+        if home["stage"] == "dns" or _local_error(home.get("error")):
+            # under load the resolver times out too; half of such hosts open on a calm rerun
+            return "unknown"
         if home["stage"] == "body" and 0 < home["bytes"] < abroad["bytes"]:
             return "throttled"
         return "blocked"
@@ -158,7 +161,14 @@ def verdict(home, abroad):
     # 403 at home where abroad gets the page, or a plain "log in" 401 for an API
     if home["status"] in (403, 451) and abroad["status"] in (200, 401):
         return "geoblocked"
+    if home["status"] >= 400 and home["status"] != abroad["status"]:
+        return "unknown"  # an error at home that abroad didn't get proves nothing either way
     return "works"
+
+
+def _local_error(error):
+    """The scanning computer lost its network, not the site."""
+    return any(e in (error or "") for e in ("No such device", "Network is unreachable", "No route to host"))
 
 
 def resource_verdicts(home, abroad):

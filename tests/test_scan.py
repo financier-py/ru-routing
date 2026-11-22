@@ -29,6 +29,12 @@ class VerdictTest(unittest.TestCase):
     def test_stub_page(self):
         self.assertEqual(verdict(home(marks=["block"]), OK), "blocked")
 
+    def test_no_answer_proves_nothing(self):
+        self.assertEqual(verdict(home(status=None, stage="dns", bytes=0), OK), "unknown")
+        self.assertEqual(verdict(home(status=None, stage="connect", error="OSError: [Errno 19] No such device"), OK), "unknown")
+        self.assertEqual(verdict(home(status=403), {**OK, "status": 404}), "unknown")
+        self.assertEqual(verdict(home(status=404), {**OK, "status": 404}), "works")
+
     def test_nothing_to_compare_with(self):
         self.assertEqual(verdict(home(status=None, stage="dns"), None), "unknown")
         self.assertEqual(verdict(home(), {**OK, "status": 503}), "unknown")
