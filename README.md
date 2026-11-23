@@ -76,6 +76,7 @@ sends everything except Russian sites.
 | `scan-working` | Sites on block lists that open fine from a Russian home connection, in every home scan |
 | `telegram` | Telegram: apps, web and the networks of its data centers |
 | `tiktok` | TikTok |
+| `torrent` | Public BitTorrent trackers |
 | `twitter` | X, formerly Twitter |
 | `win-spy` | Windows telemetry |
 | `youtube` | YouTube: site, apps, player and video CDN |

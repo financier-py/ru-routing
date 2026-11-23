@@ -53,3 +53,6 @@ update.microsoft.com    os-updates
 d1dlmcr85iqnpo.cloudfront.net   ru-unreachable
 mixnews.lv              scan-broken ru-unreachable
 status.openai.com       scan-broken
+
+tracker.opentrackr.org  torrent
+open.stealth.si         torrent
