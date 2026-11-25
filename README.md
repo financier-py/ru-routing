@@ -1,8 +1,7 @@
 # ru-routing
 
 Domain and IP lists for split tunneling from Russia: what doesn't open without
-a VPN, and what is better left outside of it. Built every night from public
-block lists and from our own checks made from Russian home connections.
+a VPN, and what is better left outside of it.
 
 A category only says what it contains: `youtube`, `telegram`, `ru-blocked`,
 `ip-check`. Where the traffic goes is up to your config.
