@@ -6,7 +6,9 @@ Each core is started twice: with a config that uses every category of the
 variant, and with the same config minus the lists. The difference is what the
 lists cost. Peak is the highest anonymous RSS seen while the core starts up:
 iOS kills a VPN extension at the moment it crosses 50 MB, so the peak matters
-more than the steady state.
+more than the steady state, and --max-peak checks the whole core's peak, not
+the lists' share. The share is a difference of two peaks that depend on when
+the Go collector runs, and for mihomo it swings by several MiB between runs.
 
 Xray picks its domain matcher by OS and on Linux builds the desktop one, which
 uses several times more memory than the one iOS gets. Build it with the mobile
@@ -115,7 +117,7 @@ def main():
     parser.add_argument("--xray")
     parser.add_argument("--mihomo")
     parser.add_argument("--runs", type=int, default=3, help="take the median of this many runs")
-    parser.add_argument("--max-peak", type=float, help="fail if the lists' peak goes above this many MiB")
+    parser.add_argument("--max-peak", type=float, help="fail if a core's total peak goes above this many MiB")
     parser.add_argument("variants", nargs="+")
     args = parser.parse_args()
 
@@ -131,7 +133,7 @@ def main():
                 tuple(statistics.median(r[i][j] for r in runs) for j in (0, 1)) for i in (0, 1))
             label = f"{Path(variant).name} / {core}"
             print(f"{label:22}{peak - base_peak:>9.1f} MiB{steady - base_steady:>11.1f} MiB{peak:>14.1f} MiB")
-            if args.max_peak and peak - base_peak > args.max_peak:
+            if args.max_peak and peak > args.max_peak:
                 over.append(label)
     if over:
         raise SystemExit(f"over {args.max_peak} MiB: {', '.join(over)}")

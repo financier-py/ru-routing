@@ -45,8 +45,21 @@ jobs:
           (cd bin && ../tools/build-xray.sh "$XRAY_VERSION")
           echo "$PWD/bin" >> "$GITHUB_PATH"
 
+      # A runner starts empty: without yesterday's downloads one upstream
+      # that fails to answer stops the build instead of falling back.
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache
+          key: sources-${{ github.run_id }}
+          restore-keys: sources-
+
       - name: Build
         run: python -m ru_routing build | tee counts.txt
+
+      - uses: actions/cache/save@v4
+        with:
+          path: .cache
+          key: sources-${{ github.run_id }}
 
       - name: Check
         run: |
@@ -54,7 +67,7 @@ jobs:
           tools/check-examples.sh dist/full bin/xray bin/mihomo
 
       - name: Memory
-        run: python tools/memory.py --xray bin/xray-mobile --mihomo bin/mihomo --max-peak 25 dist/lite dist/standard | tee memory.txt
+        run: python tools/memory.py --xray bin/xray-mobile --mihomo bin/mihomo --max-peak 40 dist/lite dist/standard | tee memory.txt
 
       - name: Release
         env:

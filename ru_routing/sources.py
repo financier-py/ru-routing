@@ -12,7 +12,9 @@ import ipaddress
 import json
 import socket
 import tarfile
+import time
 import tomllib
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -41,13 +43,20 @@ def load_config(path):
     return {name: Source(name, **spec) for name, spec in config.items()}
 
 
-def download(url, timeout=300):
+def download(url, timeout=300, attempts=3):
+    """Network errors and 5xx get retried: RIPEstat drops a request now and then."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.read()
-    except http.client.HTTPException as e:  # a connection cut mid-file is not an OSError
-        raise OSError(f"{type(e).__name__}: {e}") from e
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.read()
+        except urllib.error.HTTPError as e:
+            if e.code < 500 and e.code != 429 or attempt == attempts:
+                raise
+        except (OSError, http.client.HTTPException) as e:  # a connection cut mid-file is not an OSError
+            if attempt == attempts:
+                raise OSError(f"{type(e).__name__}: {e}") from e
+        time.sleep(5 * attempt)
 
 
 def count_lines(data):
