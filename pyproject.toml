@@ -5,6 +5,9 @@ description = "Routing lists for Russia: what doesn't open without a tunnel"
 requires-python = ">=3.11"
 license = "MIT"
 
+[project.optional-dependencies]
+browser = ["playwright>=1.40"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

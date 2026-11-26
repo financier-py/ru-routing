@@ -3,7 +3,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import direct, formats, probe, rules, scan, sources, variants, verify
+from . import browse, direct, formats, probe, rules, scan, sources, variants, verify
 from .resolve import Resolver, matches, minimize, split
 
 
@@ -163,6 +163,30 @@ def run_verdicts(args):
               f"scan {out / 'recheck.txt'} abroad and pass it as one more abroad file")
 
 
+def run_browse(args):
+    browse.run(scan.load_targets(args.targets, args.limit), args.out, args.jobs, args.proxy, args.browser)
+
+
+def run_browse_verdicts(args):
+    home, abroad = scan.records(args.home), scan.load(*args.abroad)
+    pages, hosts = {}, {}
+    for site, record in home.items():
+        page, broken = browse.compare(record, abroad.get(site))
+        pages[site] = page
+        for host in broken:
+            hosts.setdefault(host, []).append(site)
+    counts = {}
+    for v in pages.values():
+        counts[v] = counts.get(v, 0) + 1
+    print(", ".join(f"{v}: {n}" for v, n in sorted(counts.items(), key=lambda x: -x[1])))
+    print(f"{len(hosts)} hosts broken at home on {sum(map(len, hosts.values()))} pages")
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "pages.txt").write_text("".join(f"{s} {v}\n" for s, v in sorted(pages.items())), encoding="utf-8")
+    (out / "hosts.txt").write_text("".join(f"{h} {' '.join(sorted(s))}\n" for h, s in sorted(hosts.items())),
+                                   encoding="utf-8")
+
+
 def readme(args):
     """Rewrite the category table in README.md from the descriptions in data/."""
     rows = []
@@ -222,6 +246,21 @@ def main():
     p.add_argument("--dns", help="DNS server to use with --interface")
     p.add_argument("--no-vpn-check", action="store_true")
     p.set_defaults(func=run_scan)
+
+    p = sub.add_parser("browse", help="open sites in a browser and note every host they use")
+    p.add_argument("targets")
+    p.add_argument("-o", "--out", default="browse.jsonl")
+    p.add_argument("--jobs", type=int, default=4, help="pages open at once")
+    p.add_argument("--limit", type=int)
+    p.add_argument("--proxy", help="e.g. socks5://127.0.0.1:1080 for the run from abroad")
+    p.add_argument("--browser", help="path to Chrome or Chromium instead of the one Playwright installs")
+    p.set_defaults(func=run_browse)
+
+    p = sub.add_parser("browse-verdicts", help="compare browser visits from Russia and from abroad")
+    p.add_argument("home")
+    p.add_argument("abroad", nargs="+")
+    p.add_argument("-o", "--out", default="findings-browser")
+    p.set_defaults(func=run_browse_verdicts)
 
     p = sub.add_parser("verdicts", help="compare a scan from Russia with one from abroad")
     p.add_argument("home")

@@ -130,6 +130,14 @@ back. A status code proves nothing, so it looks at the page itself:
 A site goes to `scan-broken` only if it failed in every home scan and loaded
 abroad. `scan-working` lists sites from block lists that open fine.
 
+Sites that matter get a second look in a real browser: `python -m ru_routing
+browse`, which needs Playwright (`pip install playwright && playwright install
+chromium`). It runs the scripts, so it sees every API and CDN a page talks to,
+and shows which of those hosts are broken at home even when the page itself
+opens. `tools/hostings.py` does the same for hosting networks: blocking by
+address freezes every site of a network after the first few kilobytes, so it
+scans a sample of sites from each.
+
 ## Help with a scan
 
 Blocking differs from one provider to another, so every extra home connection
