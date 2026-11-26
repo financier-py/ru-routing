@@ -19,8 +19,8 @@ from pathlib import Path
 
 from . import probe, scan
 
-PAGE_TIMEOUT = 30_000  # ms for the page itself to load
-SETTLE = 5_000         # ms to let scripts finish their requests after load
+PAGE_TIMEOUT = 30_000  # ms for the page itself to arrive
+SETTLE = 10_000        # ms for scripts to make their requests; "load" waits for every tracker
 TRACE = "https://www.cloudflare.com/cdn-cgi/trace"
 
 
@@ -73,7 +73,7 @@ async def visit(browser, target):
     page.on("requestfailed", failed)
     start = time.monotonic()
     try:
-        response = await page.goto(url, timeout=PAGE_TIMEOUT, wait_until="load")
+        response = await page.goto(url, timeout=PAGE_TIMEOUT, wait_until="domcontentloaded")
         result["status"] = response.status if response else None
         with contextlib.suppress(Exception):  # a page that never goes quiet is still a page
             await page.wait_for_load_state("networkidle", timeout=SETTLE)

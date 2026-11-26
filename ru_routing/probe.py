@@ -33,7 +33,7 @@ MARKERS = {
 }
 # Bot checks are recognised by their title: plenty of normal pages mention "captcha" somewhere.
 CHALLENGE_TITLES = ["just a moment", "attention required", "checking your browser", "ddos-guard",
-                    "verifying you are human", "один момент", "проверка браузера"]
+                    "verifying you are human", "confirm you are human", "один момент", "проверка браузера"]
 _title = re.compile(rb"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 _resource = re.compile(rb"""(?:src|href)=["'](?:https:)?//([a-z0-9.-]+\.[a-z]{2,})(/[^"'\s>]*)""", re.IGNORECASE)
 # A redirect to a page like /app-unavailable-in-region or ?location=unsupported is a refusal.
