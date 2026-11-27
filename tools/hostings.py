@@ -188,9 +188,9 @@ def report(args):
         sizes = sorted(stall[asn])
         freeze = f"{sizes[len(sizes) // 2] // 1024} KB" if sizes else ""
         name = f"{asn} AS{info[asn][0]}" if args.subnets else f"AS{asn}"
-        table.append((asn, verdict, f"| {name} {info[asn][2][:28]} ({info[asn][1]}) | {total} | {c['works']} "
-                      f"| {c['throttled']} | {c['blocked'] + c['geoblocked']} | {c['unstable']} | {c['unknown']} "
-                      f"| {freeze} | {verdict} |"))
+        row = (f"| {name} {info[asn][2][:28]} ({info[asn][1]}) | {total} | {c['works']} | {c['throttled']} "
+               f"| {c['blocked'] + c['geoblocked']} | {c['unstable']} | {c['unknown']} | {freeze} | {verdict} |")
+        table.append((asn, verdict, row))
     if args.slowed:
         print("\n".join(f"ip:{key}" for key, verdict, _ in table if verdict == "slowed down"))
         return
