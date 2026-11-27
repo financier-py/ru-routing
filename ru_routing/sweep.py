@@ -33,6 +33,7 @@ create table if not exists targets (
 create index if not exists targets_due on targets (passes, priority);
 create table if not exists checks (host text not null, at real not null, record text not null);
 create index if not exists checks_host on checks (host);
+create index if not exists checks_at on checks (at);
 """
 
 
