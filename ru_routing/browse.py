@@ -87,6 +87,8 @@ async def visit(browser, target):
     except Exception:  # noqa: BLE001
         text = ""
     result["marks"] = [kind for kind, words in probe.MARKERS.items() if any(w in text for w in words)]
+    if probe.refusal_url.search(urllib.parse.urlsplit(page.url).path) and "geo" not in result["marks"]:
+        result["marks"].append("geo")  # claude.ai sends Russia to /app-unavailable-in-region
     if any(t in result["title"].lower() for t in probe.CHALLENGE_TITLES):
         result["marks"].append("challenge")
     for request in pending:  # still waiting when we gave up: a stall
@@ -168,3 +170,13 @@ def compare(home, abroad):
     else:
         page = "works"
     return page, sorted(hosts)
+
+
+def agree(results):
+    """Several home passes of one site, each a (page verdict, broken hosts) pair.
+
+    A verdict stands only if every pass gave it, and a host counts as broken only
+    if it was broken in every pass: one slow evening at home proves nothing."""
+    pages = {page for page, _ in results}
+    hosts = set.intersection(*(set(h) for _, h in results))
+    return (pages.pop() if len(pages) == 1 else "unstable"), sorted(hosts)

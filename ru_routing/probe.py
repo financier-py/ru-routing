@@ -37,7 +37,7 @@ CHALLENGE_TITLES = ["just a moment", "attention required", "checking your browse
 _title = re.compile(rb"<title[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
 _resource = re.compile(rb"""(?:src|href)=["'](?:https:)?//([a-z0-9.-]+\.[a-z]{2,})(/[^"'\s>]*)""", re.IGNORECASE)
 # A redirect to a page like /app-unavailable-in-region or ?location=unsupported is a refusal.
-_refusal_url = re.compile(r"unsupported|unavailable|not[-_]available|restricted", re.IGNORECASE)
+refusal_url = re.compile(r"unsupported|unavailable|not[-_]available|restricted", re.IGNORECASE)
 
 
 # DNS over HTTPS servers to fall back on: VPN apps on Windows catch every DNS packet
@@ -229,7 +229,7 @@ def fetch(target, route=None, resolver=None, deep=True):
         title = _title.search(body[:65536])
         result["title"] = title.group(1).decode("utf-8", "replace").strip()[:120] if title else ""
         result["marks"] = [kind for kind, words in MARKERS.items() if any(w.encode() in head for w in words)]
-        if _refusal_url.search(path):
+        if refusal_url.search(path):
             result["marks"].append("geo")
         if any(t in result["title"].lower() for t in CHALLENGE_TITLES) or (
                 status in (403, 429, 503) and b"cf-chl" in head):

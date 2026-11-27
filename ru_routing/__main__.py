@@ -168,17 +168,18 @@ def run_browse(args):
 
 
 def run_browse_verdicts(args):
-    home, abroad = scan.records(args.home), scan.load(*args.abroad)
+    passes, abroad = [scan.records(p) for p in args.home], scan.load(*args.abroad)
     pages, hosts = {}, {}
-    for site, record in home.items():
-        page, broken = browse.compare(record, abroad.get(site))
+    for site in set.intersection(*(set(p) for p in passes)):
+        page, broken = browse.agree([browse.compare(p[site], abroad.get(site)) for p in passes])
         pages[site] = page
         for host in broken:
             hosts.setdefault(host, []).append(site)
     counts = {}
     for v in pages.values():
         counts[v] = counts.get(v, 0) + 1
-    print(", ".join(f"{v}: {n}" for v, n in sorted(counts.items(), key=lambda x: -x[1])))
+    print(f"{len(pages)} sites in all {len(passes)} home passes: "
+          + ", ".join(f"{v}: {n}" for v, n in sorted(counts.items(), key=lambda x: -x[1])))
     print(f"{len(hosts)} hosts broken at home on {sum(map(len, hosts.values()))} pages")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -257,8 +258,8 @@ def main():
     p.set_defaults(func=run_browse)
 
     p = sub.add_parser("browse-verdicts", help="compare browser visits from Russia and from abroad")
-    p.add_argument("home")
-    p.add_argument("abroad", nargs="+")
+    p.add_argument("home", nargs="+", help="one file per home pass")
+    p.add_argument("--abroad", nargs="+", required=True)
     p.add_argument("-o", "--out", default="findings-browser")
     p.set_defaults(func=run_browse_verdicts)
 

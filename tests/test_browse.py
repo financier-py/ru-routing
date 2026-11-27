@@ -1,6 +1,6 @@
 import unittest
 
-from ru_routing.browse import compare
+from ru_routing.browse import agree, compare
 
 
 def hosts(**kw):
@@ -37,6 +37,15 @@ class CompareTest(unittest.TestCase):
     def test_no_good_visit_abroad(self):
         self.assertEqual(compare(visit(site=(5, 0, [])), visit(status=None, error="x")), ("unknown", []))
         self.assertEqual(compare(visit(site=(5, 0, [])), visit(marks=["challenge"])), ("unknown", []))
+
+
+class AgreeTest(unittest.TestCase):
+    def test_every_pass_must_agree(self):
+        self.assertEqual(agree([("works", ["cdn", "api"]), ("works", ["cdn"])]), ("works", ["cdn"]))
+        self.assertEqual(agree([("broken", ["site"]), ("works", [])]), ("unstable", []))
+
+    def test_one_pass(self):
+        self.assertEqual(agree([("geoblocked", ["site"])]), ("geoblocked", ["site"]))
 
 
 if __name__ == "__main__":
