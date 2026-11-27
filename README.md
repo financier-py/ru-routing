@@ -54,6 +54,7 @@ sends everything except Russian sites.
 | `ai` | AI services: ChatGPT, Claude, Gemini, Copilot, Perplexity and others |
 | `cloudflare` | Networks of Cloudflare |
 | `cloudfront` | Networks of Amazon CloudFront, a CDN |
+| `contabo` | Networks of Contabo, a German hosting provider |
 | `discord` | Discord: apps, web, media and voice |
 | `geoblock-ru` | Services that refuse Russian users on their own |
 | `google` | Every Google service |
@@ -62,7 +63,9 @@ sends everything except Russian sites.
 | `hetzner` | Networks of Hetzner, a German hosting provider |
 | `hypixel` | Hypixel, the Minecraft server |
 | `ip-check` | Services that show your IP address and where it is |
+| `m247` | Networks of M247, a Romanian hosting provider |
 | `meta` | Meta: Facebook, Instagram, WhatsApp, Threads |
+| `oracle` | Networks of Oracle Cloud |
 | `os-updates` | Updates and downloads of Windows, Android, Chrome and Apple systems |
 | `ovh` | Networks of OVH, a French hosting provider |
 | `push` | Push notifications from Apple and Google |
@@ -77,6 +80,7 @@ sends everything except Russian sites.
 | `tiktok` | TikTok |
 | `torrent` | Public BitTorrent trackers |
 | `twitter` | X, formerly Twitter |
+| `vultr` | Networks of Vultr, a cloud hosting provider |
 | `win-spy` | Windows telemetry |
 | `youtube` | YouTube: site, apps, player and video CDN |
 <!-- /categories -->
