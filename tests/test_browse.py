@@ -37,6 +37,7 @@ class CompareTest(unittest.TestCase):
     def test_no_good_visit_abroad(self):
         self.assertEqual(compare(visit(site=(5, 0, [])), visit(status=None, error="x")), ("unknown", []))
         self.assertEqual(compare(visit(site=(5, 0, [])), visit(marks=["challenge"])), ("unknown", []))
+        self.assertEqual(compare(visit(status=None, error="x"), visit(status=403)), ("unknown", []))
 
 
 class AgreeTest(unittest.TestCase):

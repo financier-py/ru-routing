@@ -152,7 +152,7 @@ def compare(home, abroad):
 
     A host counts as broken when nothing from it came through at home while
     abroad it answered. Hosts the page didn't use abroad prove nothing."""
-    if not abroad or abroad["error"] or not abroad["status"] or abroad["status"] >= 500 \
+    if not abroad or abroad["error"] or not abroad["status"] or abroad["status"] >= 400 \
             or "challenge" in abroad["marks"]:
         return "unknown", []
     hosts = [h for h, s in home["requests"].items()
@@ -165,7 +165,7 @@ def compare(home, abroad):
         page = "geoblocked"
     elif home["error"] or not home["status"]:
         page = "broken"
-    elif home["status"] in (403, 451) and abroad["status"] < 400:
+    elif home["status"] in (403, 451):
         page = "geoblocked"
     else:
         page = "works"
