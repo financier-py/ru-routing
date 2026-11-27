@@ -68,11 +68,15 @@ def address(host):
 
 
 def resolve(args):
+    """In chunks: pool.map over a million names would queue them all at once."""
     hosts = scan.load_targets(args.sites)
     with ThreadPoolExecutor(args.jobs) as pool:
-        for host, ip in zip(hosts, pool.map(address, hosts)):
-            if ip:
-                print(f"{host}\t{ip}", flush=False)
+        for start in range(0, len(hosts), 10_000):
+            chunk = hosts[start:start + 10_000]
+            for host, ip in zip(chunk, pool.map(address, chunk)):
+                if ip:
+                    print(f"{host}\t{ip}")
+            sys.stdout.flush()
 
 
 def skip_names(paths):
