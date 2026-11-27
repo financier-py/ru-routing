@@ -92,27 +92,30 @@ def pick(args):
 
 
 def report(args):
+    """One file per home pass. A site counts only where every pass agrees;
+    a site that froze once and loaded once is "unstable", not slowed down."""
     networks = Networks(args.table)
-    home, abroad = scan.load(*args.home), scan.load(*args.abroad)
+    passes, abroad = [scan.records(p) for p in args.home], scan.load(*args.abroad)
     rows = defaultdict(Counter)
     stall = defaultdict(list)
     info = {}
-    for host, r in home.items():
+    for host in set.intersection(*(set(p) for p in passes)):
         a = abroad.get(host)
-        ip = (a or {}).get("ip") or r.get("ip")
+        ip = (a or {}).get("ip") or passes[0][host].get("ip")
         found = networks.lookup(ip) if ip else None
         if not found:
             continue
         info[found[0]] = found
-        verdict = scan.verdict(r, a)
+        verdicts = {scan.verdict(p[host], a) for p in passes}
+        verdict = verdicts.pop() if len(verdicts) == 1 else "unstable"
         rows[found[0]][verdict] += 1
         if verdict == "throttled":
-            stall[found[0]].append(r["bytes"])
-    print("| Network | Sites | Works | Throttled | Blocked | Unknown | Freezes at | Verdict |")
-    print("|---|---:|---:|---:|---:|---:|---:|---|")
+            stall[found[0]].extend(p[host]["bytes"] for p in passes)
+    print("| Network | Sites | Works | Throttled | Blocked | Unstable | Unknown | Freezes at | Verdict |")
+    print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
     for asn, c in sorted(rows.items(), key=lambda x: -sum(x[1].values())):
         total = sum(c.values())
-        known = total - c["unknown"]
+        known = total - c["unknown"] - c["unstable"]
         broken = c["throttled"] + c["blocked"] + c["geoblocked"]
         if known < 3:
             verdict = "too few answers"
@@ -125,7 +128,7 @@ def report(args):
         sizes = sorted(stall[asn])
         freeze = f"{sizes[len(sizes) // 2] // 1024} KB" if sizes else ""
         print(f"| AS{asn} {info[asn][2][:28]} ({info[asn][1]}) | {total} | {c['works']} | {c['throttled']} "
-              f"| {c['blocked'] + c['geoblocked']} | {c['unknown']} | {freeze} | {verdict} |")
+              f"| {c['blocked'] + c['geoblocked']} | {c['unstable']} | {c['unknown']} | {freeze} | {verdict} |")
 
 
 def main():
@@ -141,7 +144,7 @@ def main():
                    help="more networks to sample, e.g. 20473,63949")
     p.set_defaults(func=pick)
     p = sub.add_parser("report", help="a table of networks from a home scan")
-    p.add_argument("home", nargs="+")
+    p.add_argument("home", nargs="+", help="one file per home pass")
     p.add_argument("--abroad", nargs="+", required=True)
     p.set_defaults(func=report)
     args = parser.parse_args()
