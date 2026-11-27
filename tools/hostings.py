@@ -93,19 +93,20 @@ def wanted(host, names):
 
 
 def spread(args):
-    """A few names from every /24 of foreign networks, in the order of the list."""
+    """A few names from every /24 of the chosen networks, busiest subnets first."""
     networks = Networks(args.table)
     names = skip_names(args.skip)
-    taken = Counter()
+    subnets = defaultdict(lambda: defaultdict(list))
     for line in Path(args.resolved).read_text(encoding="utf-8").splitlines():
         host, ip = line.split("\t")
-        subnet = ip.rsplit(".", 1)[0]
-        if taken[subnet] >= args.per_subnet or not wanted(host, names):
-            continue
         found = networks.lookup(ip)
-        if found and found[1] != "RU":
-            taken[subnet] += 1
-            print(host)
+        if not found or found[1] == "RU" or (args.asn and found[0] not in args.asn) or not wanted(host, names):
+            continue
+        subnets[found[0]][ip.rsplit(".", 1)[0]].append(host)
+    for asn, by_subnet in subnets.items():
+        busiest = sorted(by_subnet.values(), key=len, reverse=True)[:args.max_subnets]
+        print(f"# AS{asn}: {len(busiest)} of {len(by_subnet)} subnets")
+        print("\n".join(h for hosts in busiest for h in hosts[:args.per_subnet]))
 
 
 def skipped(host, names):
@@ -171,8 +172,7 @@ def report(args):
         rows[key][verdict] += 1
         if verdict == "throttled":
             stall[key].extend(p[host]["bytes"] for p in passes)
-    print("| Network | Sites | Works | Throttled | Blocked | Unstable | Unknown | Freezes at | Verdict |")
-    print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
+    table = []
     for asn, c in sorted(rows.items(), key=lambda x: -sum(x[1].values())):
         total = sum(c.values())
         known = total - c["unknown"] - c["unstable"]
@@ -188,8 +188,15 @@ def report(args):
         sizes = sorted(stall[asn])
         freeze = f"{sizes[len(sizes) // 2] // 1024} KB" if sizes else ""
         name = f"{asn} AS{info[asn][0]}" if args.subnets else f"AS{asn}"
-        print(f"| {name} {info[asn][2][:28]} ({info[asn][1]}) | {total} | {c['works']} | {c['throttled']} "
-              f"| {c['blocked'] + c['geoblocked']} | {c['unstable']} | {c['unknown']} | {freeze} | {verdict} |")
+        table.append((asn, verdict, f"| {name} {info[asn][2][:28]} ({info[asn][1]}) | {total} | {c['works']} "
+                      f"| {c['throttled']} | {c['blocked'] + c['geoblocked']} | {c['unstable']} | {c['unknown']} "
+                      f"| {freeze} | {verdict} |"))
+    if args.slowed:
+        print("\n".join(f"ip:{key}" for key, verdict, _ in table if verdict == "slowed down"))
+        return
+    print("| Network | Sites | Works | Throttled | Blocked | Unstable | Unknown | Freezes at | Verdict |")
+    print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
+    print("\n".join(row for _, _, row in table))
 
 
 def main():
@@ -213,11 +220,14 @@ def main():
     p.add_argument("resolved")
     p.add_argument("--skip", action="append", default=[])
     p.add_argument("--per-subnet", type=int, default=3)
+    p.add_argument("--max-subnets", type=int, default=1500, help="per network")
+    p.add_argument("--asn", type=lambda s: {int(a) for a in s.split(",")}, help="only these networks")
     p.set_defaults(func=spread)
     p = sub.add_parser("report", help="a table of networks from a home scan")
     p.add_argument("home", nargs="+", help="one file per home pass")
     p.add_argument("--abroad", nargs="+", required=True)
     p.add_argument("--subnets", action="store_true", help="one row per /24 instead of per network")
+    p.add_argument("--slowed", action="store_true", help="only the /24s that are slowed down, as ip: rules")
     p.set_defaults(func=report)
     args = parser.parse_args()
     args.func(args)
