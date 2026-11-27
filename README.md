@@ -52,9 +52,13 @@ sends everything except Russian sites.
 | `ads` | Ads and trackers |
 | `ads-big` | Ads and trackers, the aggressive list |
 | `ai` | AI services: ChatGPT, Claude, Gemini, Copilot, Perplexity and others |
+| `akamai` | Networks of Akamai, a CDN |
+| `amazon` | Networks of Amazon Web Services, CloudFront included |
+| `cdn77` | Networks of CDN77, a CDN |
 | `cloudflare` | Networks of Cloudflare |
 | `cloudfront` | Networks of Amazon CloudFront, a CDN |
 | `contabo` | Networks of Contabo, a German hosting provider |
+| `digitalocean` | Networks of DigitalOcean, a cloud hosting provider |
 | `discord` | Discord: apps, web, media and voice |
 | `geoblock-ru` | Services that refuse Russian users on their own |
 | `google` | Every Google service |
@@ -63,6 +67,7 @@ sends everything except Russian sites.
 | `hetzner` | Networks of Hetzner, a German hosting provider |
 | `hypixel` | Hypixel, the Minecraft server |
 | `ip-check` | Services that show your IP address and where it is |
+| `linode` | Networks of Linode, a cloud hosting provider now part of Akamai |
 | `m247` | Networks of M247, a Romanian hosting provider |
 | `meta` | Meta: Facebook, Instagram, WhatsApp, Threads |
 | `oracle` | Networks of Oracle Cloud |
@@ -75,6 +80,7 @@ sends everything except Russian sites.
 | `ru-unreachable` | Everything known not to open from Russia without a tunnel: blocked, geoblocked or throttled |
 | `scaleway` | Networks of Scaleway, a French hosting provider |
 | `scan-broken` | Sites that don't open from a Russian home connection but do from abroad: blocked, throttled or geoblocked |
+| `scan-throttled` | Hosting networks where pages freeze after the first 15 KB or so from a Russian home connection, while abroad they load in full |
 | `scan-working` | Sites on block lists that open fine from a Russian home connection, in every home scan |
 | `telegram` | Telegram: apps, web and the networks of its data centers |
 | `tiktok` | TikTok |
@@ -140,7 +146,8 @@ chromium`). It runs the scripts, so it sees every API and CDN a page talks to,
 and shows which of those hosts are broken at home even when the page itself
 opens. `tools/hostings.py` does the same for hosting networks: blocking by
 address freezes every site of a network after the first few kilobytes, so it
-scans a sample of sites from each.
+scans a sample of sites from each. The /24s where they freeze go to
+`scan-throttled`.
 
 ## Help with a scan
 

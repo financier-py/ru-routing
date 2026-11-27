@@ -34,7 +34,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ru_routing import scan, sources
 
 TABLE = "https://iptoasn.com/data/ip2asn-v4.tsv.gz"
-FULL_PAGE = 100_000  # a scan reads 128 KB at most; a page this big shows a freeze at 16 KB
+FULL_PAGE = 100_000
+SLOWED_HEADER = """# Hosting networks where pages freeze after the first 15 KB or so from a Russian
+# home connection, while abroad they load in full. A /24 is listed when most of
+# the sites sampled in it froze in every home scan. Blocking here also depends on
+# the site, so a few sites in these networks still work. Written by
+# tools/hostings.py report --subnets --slowed, don't edit by hand.
+"""  # a scan reads 128 KB at most; a page this big shows a freeze at 16 KB
 
 
 class Networks:
@@ -192,7 +198,9 @@ def report(args):
                f"| {c['blocked'] + c['geoblocked']} | {c['unstable']} | {c['unknown']} | {freeze} | {verdict} |")
         table.append((asn, verdict, row))
     if args.slowed:
-        print("\n".join(f"ip:{key}" for key, verdict, _ in table if verdict == "slowed down"))
+        print(SLOWED_HEADER)
+        print("\n".join(f"ip:{key}" for key, verdict, _ in sorted(table, key=lambda x: ipaddress.ip_network(x[0]))
+                        if verdict == "slowed down"))
         return
     print("| Network | Sites | Works | Throttled | Blocked | Unstable | Unknown | Freezes at | Verdict |")
     print("|---|---:|---:|---:|---:|---:|---:|---:|---|")
@@ -227,7 +235,7 @@ def main():
     p.add_argument("home", nargs="+", help="one file per home pass")
     p.add_argument("--abroad", nargs="+", required=True)
     p.add_argument("--subnets", action="store_true", help="one row per /24 instead of per network")
-    p.add_argument("--slowed", action="store_true", help="only the /24s that are slowed down, as ip: rules")
+    p.add_argument("--slowed", action="store_true", help="only the /24s that are slowed down, as a category file")
     p.set_defaults(func=report)
     args = parser.parse_args()
     args.func(args)
