@@ -3,7 +3,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from . import browse, direct, formats, probe, rules, scan, sources, variants, verify
+from . import browse, direct, formats, probe, rules, scan, sources, sweep, variants, verify
 from .resolve import Resolver, matches, minimize, split
 
 
@@ -188,6 +188,24 @@ def run_browse_verdicts(args):
                                    encoding="utf-8")
 
 
+def run_sweep(args):
+    if args.action == "add":
+        db = sweep.connect(args.db)
+        lines = Path(args.file).read_text(encoding="utf-8").splitlines()
+        print(f"{sweep.add(db, lines, args.source)} targets added", file=sys.stderr)
+    elif args.action == "export":
+        for n, count in sorted(sweep.export(args.db, args.out).items()):
+            print(f"pass {n}: {count} sites")
+    elif args.action == "run":
+        route, resolver = None, None
+        if args.side == "home":
+            route, resolver = scan.prepare()
+            direct.keep_awake()
+        start, end = map(int, args.night.split("-"))
+        sweep.run(args.db, args.side, args.day_jobs, args.night_jobs, (start, end), route, resolver,
+                  args.pause_file, args.status_file)
+
+
 def readme(args):
     """Rewrite the category table in README.md from the descriptions in data/."""
     rows = []
@@ -262,6 +280,20 @@ def main():
     p.add_argument("--abroad", nargs="+", required=True)
     p.add_argument("-o", "--out", default="findings-browser")
     p.set_defaults(func=run_browse_verdicts)
+
+    p = sub.add_parser("sweep", help="check a very long list of sites, a little at a time, for weeks")
+    p.add_argument("action", choices=["add", "run", "export"])
+    p.add_argument("file", nargs="?", help="add: lines of \"priority host\"")
+    p.add_argument("--db", default="sweep.db")
+    p.add_argument("--source", help="add: where the targets came from")
+    p.add_argument("--side", choices=["home", "abroad"], default="home")
+    p.add_argument("--day-jobs", type=int, default=10)
+    p.add_argument("--night-jobs", type=int, default=30)
+    p.add_argument("--night", default="1-8", help="hours of the night by the local clock, e.g. 1-8")
+    p.add_argument("--pause-file", help="while this file exists, wait")
+    p.add_argument("--status-file", help="keep progress here as JSON")
+    p.add_argument("-o", "--out", default="sweep", help="export: a folder for pass-N.jsonl")
+    p.set_defaults(func=run_sweep)
 
     p = sub.add_parser("verdicts", help="compare a scan from Russia with one from abroad")
     p.add_argument("home")
