@@ -142,8 +142,11 @@ def load(*paths):
 
 def verdict(home, abroad):
     """Compare one host or URL as seen from Russia and from abroad."""
-    if not abroad or abroad["status"] is None or abroad["status"] >= 500 or "challenge" in abroad.get("marks", []):
+    if not abroad or abroad["status"] is None or abroad["status"] >= 500 or abroad.get("error") \
+            or "challenge" in abroad.get("marks", []):
         return "unknown"  # no good page abroad either: dead, broken or behind a bot check
+    if home.get("error") and home["status"] is not None:
+        home = {**home, "status": None}  # scans made before the fix kept the 301 of a redirect that stalled
     if home["status"] is None:
         if _no_answer(home) or _local_error(home.get("error")):
             # under load the resolver times out too; half of such hosts open on a calm rerun

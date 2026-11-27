@@ -120,7 +120,7 @@ def pick(args):
     by_asn = defaultdict(dict)
     info = {}
     for host, r in scan.load(*args.abroad).items():
-        if "://" in host or r["status"] != 200 or r["bytes"] < FULL_PAGE or not r.get("ip"):
+        if "://" in host or r["status"] != 200 or r.get("error") or r["bytes"] < FULL_PAGE or not r.get("ip"):
             continue
         if not wanted(host, names):
             continue

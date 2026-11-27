@@ -19,6 +19,10 @@ class VerdictTest(unittest.TestCase):
     def test_throttled_mid_page(self):
         self.assertEqual(verdict(home(status=None, stage="body", bytes=16000), OK), "throttled")
 
+    def test_stall_after_a_redirect(self):
+        stalled = home(status=301, stage="body", bytes=16000, error="TimeoutError: The read operation timed out")
+        self.assertEqual(verdict(stalled, OK), "throttled")
+
     def test_geoblocked_by_text_or_status(self):
         self.assertEqual(verdict(home(marks=["geo"]), OK), "geoblocked")
         self.assertEqual(verdict(home(status=451), OK), "geoblocked")

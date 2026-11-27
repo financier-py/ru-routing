@@ -217,6 +217,7 @@ def fetch(target, route=None, resolver=None, deep=True):
             break
         status, location, body = _get(url_host, path, route, resolver, result, LIMIT if deep else RESOURCE_LIMIT)
         if status is None:
+            result["status"] = None  # a redirect that led to a stall is a stall, not the redirect's 301
             break
         result.update(status=status, bytes=len(body), final=f"{url_host}{path}")
         if status in (301, 302, 303, 307, 308) and location:
