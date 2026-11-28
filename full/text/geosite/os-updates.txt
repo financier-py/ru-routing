@@ -1,0 +1,11 @@
+domain:delivery.mp.microsoft.com
+domain:dl.google.com
+domain:gvt1.com
+domain:gvt2.com
+domain:gvt3.com
+domain:mesu.apple.com
+domain:swcdn.apple.com
+domain:update.microsoft.com
+domain:updates.cdn-apple.com
+domain:windowsupdate.com
+full:android.clients.google.com

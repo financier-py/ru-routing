@@ -1,0 +1,2 @@
+domain:hypixel.io
+domain:hypixel.net
